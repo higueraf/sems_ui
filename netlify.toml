@@ -1,0 +1,31 @@
+[build]
+  # Directorio raíz del proyecto (vacío = raíz del repo)
+  base    = ""
+  # Comando que genera la build de producción
+  command = "npm run build"
+  # Directorio de salida que Vite genera
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# ── Redirects para React Router (SPA) ────────────────────────
+# Sin esto, al refrescar /pautas o /organizadores devuelve 404
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
+
+# ── Headers de seguridad ──────────────────────────────────────
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options        = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy        = "strict-origin-when-cross-origin"
+
+# Assets estáticos con caché larga
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
