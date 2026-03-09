@@ -1,0 +1,151 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Roboto:wght@300;400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Roboto', sans-serif;
+    @apply text-gray-900 bg-white;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Montserrat', sans-serif;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary-500 hover:bg-primary-600 text-white font-semibold px-6 py-3 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary-300 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-accent {
+    @apply bg-accent-500 hover:bg-accent-600 text-white font-semibold px-6 py-3 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-accent-300;
+  }
+
+  .btn-outline {
+    @apply border-2 border-primary-500 text-primary-500 hover:bg-primary-500 hover:text-white font-semibold px-6 py-3 rounded-lg transition-all duration-200;
+  }
+
+  .btn-sm {
+    @apply px-3 py-1.5 text-sm;
+  }
+
+  .btn-danger {
+    @apply bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors;
+  }
+
+  .form-input {
+    @apply w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all bg-white text-gray-900 placeholder-gray-400;
+  }
+
+  .form-label {
+    @apply block text-sm font-semibold text-gray-700 mb-1;
+  }
+
+  .form-error {
+    @apply text-red-500 text-xs mt-1;
+  }
+
+  .card {
+    @apply bg-white rounded-xl shadow-md border border-gray-100 p-6;
+  }
+
+  .section-title {
+    @apply text-3xl font-heading font-bold text-gray-900 mb-2;
+  }
+
+  .section-divider {
+    @apply w-16 h-1 bg-accent-500 rounded-full mb-6;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold;
+  }
+
+  .sidebar-link {
+    @apply flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-150;
+  }
+
+  .sidebar-link-active {
+    @apply bg-primary-500 text-white shadow-md;
+  }
+
+  .sidebar-link-inactive {
+    @apply text-gray-300 hover:bg-white/10 hover:text-white;
+  }
+
+  .table-th {
+    @apply px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50;
+  }
+
+  .table-td {
+    @apply px-4 py-4 text-sm text-gray-800 border-b border-gray-100;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-500 to-primary-700;
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+.animate-delay-100 { animation-delay: 100ms; }
+.animate-delay-200 { animation-delay: 200ms; }
+.animate-delay-300 { animation-delay: 300ms; }
+
+/* ── Institution logos marquee ─────────────────────────────────────── */
+.logos-marquee {
+  display: flex;
+  width: max-content;
+  /* 9 logos x ~4.5s c/u = 40s velocidad cómoda, pausa al hover */
+  animation: logos-scroll 40s linear infinite;
+}
+
+.logos-marquee:hover {
+  animation-play-state: paused;
+}
+
+.logos-marquee-inner {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+@keyframes logos-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* ── Dark mode base ────────────────────────────────────────────────── */
+.dark body {
+  background-color: #030712;
+  color: #f1f5f9;
+}
+
+/* ── Hover background opacity (Tailwind doesn't ship /8) ─────────── */
+.hover\:bg-white\/8:hover {
+  background-color: rgba(255,255,255,0.08);
+}
+.bg-white\/8 {
+  background-color: rgba(255,255,255,0.08);
+}
