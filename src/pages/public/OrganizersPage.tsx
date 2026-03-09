@@ -167,11 +167,6 @@ function PersonCard({
         {name}
       </h3>
 
-      {/* Cargo institucional */}
-      {position && (
-        <p className={`text-xs mt-1 ${textMut}`}>{position}</p>
-      )}
-
       {/* Rol en el simposio */}
       {roleLabel && (
         <span className={`badge text-[10px] mt-2 ${roleBadge}`}>{roleLabel}</span>
