@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Globe, Mail, Building2, User } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { eventsApi } from '../../api/events.api';
 import { organizersApi } from '../../api/index';
 import { Organizer, OrganizerMember } from '../../types';
@@ -34,7 +35,7 @@ function Section({
   title, children, heading, divider,
 }: {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
   heading: string;
   divider: string;
 }) {
