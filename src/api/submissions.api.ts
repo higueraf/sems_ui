@@ -53,4 +53,11 @@ export const submissionsApi = {
 
   removeAuthorPhoto: (authorId: string) =>
     api.patch(`/submissions/authors/${authorId}/photo/remove`).then((r) => r.data),
+
+  /**
+   * Obtiene una presigned URL temporal (1 hora) para descargar el manuscrito.
+   * El archivo está en Backblaze B2 (privado) — no se puede acceder directo.
+   */
+  getDownloadUrl: (id: string) =>
+    api.get<{ url: string; fileName: string }>(`/submissions/admin/${id}/download`).then((r) => r.data),
 };

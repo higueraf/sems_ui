@@ -9,7 +9,8 @@ import { eventsApi } from '../../api/events.api';
 import { guidelinesApi } from '../../api/index';
 import { Guideline } from '../../types';
 
-const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace('/api', '') ?? 'http://localhost:3000';
+// API_BASE eliminado — los archivos de pautas están en Backblaze B2 (privado).
+// La descarga se hace obteniendo una presigned URL desde el backend.
 
 const EMPTY = {
   title: '',
@@ -46,7 +47,26 @@ export default function GuidelinesAdmin() {
   // Estado de upload de archivo para la pauta en edición
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  /** Obtiene la presigned URL de B2 y dispara la descarga en el navegador */
+  const handleDownload = async (id: string, fileName?: string | null) => {
+    setDownloadingId(id);
+    try {
+      const { url, fileName: fn } = await guidelinesApi.getDownloadUrl(id);
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.download = fn || fileName || 'archivo';
+      a.click();
+    } catch {
+      toast.error('No se pudo obtener el enlace de descarga');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const { data: event } = useQuery({ queryKey: ['event-active'], queryFn: eventsApi.getActive });
   const { data: guidelines, isLoading } = useQuery({
@@ -187,16 +207,16 @@ export default function GuidelinesAdmin() {
                       <FileTypeIcon mimeType={g.fileMimeType} size={14} />
                       <span className="truncate max-w-[200px]">{g.fileName}</span>
                     </div>
-                    <a
-                      href={`${API_BASE}${g.fileUrl}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      download={g.fileName ?? true}
-                      className="text-xs text-primary-600 hover:underline flex items-center gap-1"
+                    <button
+                      onClick={() => handleDownload(g.id, g.fileName)}
+                      disabled={downloadingId === g.id}
+                      className="text-xs text-primary-600 hover:underline flex items-center gap-1 disabled:opacity-50"
                     >
-                      <Download size={12} />
-                      Descargar
-                    </a>
+                      {downloadingId === g.id
+                        ? <Loader2 size={12} className="animate-spin" />
+                        : <Download size={12} />}
+                      {downloadingId === g.id ? 'Generando...' : 'Descargar'}
+                    </button>
                     <button
                       onClick={() => {
                         if (confirm('¿Eliminar el archivo adjunto de esta pauta?')) {
@@ -359,16 +379,16 @@ export default function GuidelinesAdmin() {
                       </p>
                       <p className="text-xs text-gray-400">Archivo actual</p>
                     </div>
-                    <a
-                      href={`${API_BASE}${editing.fileUrl}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      download={editing.fileName ?? true}
-                      className="text-primary-600 hover:text-primary-800"
+                    <button
+                      onClick={() => handleDownload(editing.id, editing.fileName)}
+                      disabled={downloadingId === editing.id}
+                      className="text-primary-600 hover:text-primary-800 disabled:opacity-50"
                       title="Descargar archivo actual"
                     >
-                      <Download size={16} />
-                    </a>
+                      {downloadingId === editing.id
+                        ? <Loader2 size={16} className="animate-spin" />
+                        : <Download size={16} />}
+                    </button>
                   </div>
                 )}
 

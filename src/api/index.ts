@@ -89,6 +89,13 @@ export const guidelinesApi = {
   /** Elimina el archivo adjunto de una pauta */
   removeFile: (id: string) =>
     api.delete(`/guidelines/${id}/upload`).then((r) => r.data),
+
+  /**
+   * Obtiene una presigned URL temporal (1 hora) para descargar el archivo adjunto.
+   * Necesario porque los archivos están en Backblaze B2 (privado).
+   */
+  getDownloadUrl: (id: string) =>
+    api.get<{ url: string; fileName: string }>(`/guidelines/${id}/download`).then((r) => r.data),
 };
 
 export const thematicAxesApi = {

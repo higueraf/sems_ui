@@ -49,79 +49,84 @@ export default function Footer() {
   return (
     <footer>
       {/* ── Logo marquee — carrusel infinito de una sola línea ─────────── */}
-      <div className={`border-t-4 border-amber-500 py-6 overflow-hidden ${
+      <div className={`border-t-4 border-amber-500 py-6 ${
         isDark ? 'bg-gray-900' : 'bg-gray-50'
       }`}>
-        <p className={`text-center text-[10px] font-bold uppercase tracking-[0.2em] mb-5 ${
-          isDark ? 'text-gray-500' : 'text-gray-400'
-        }`}>
-          Universidades e instituciones organizadoras
-        </p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className={`text-center text-[10px] font-bold uppercase tracking-[0.2em] mb-5 ${
+            isDark ? 'text-gray-500' : 'text-gray-400'
+          }`}>
+            Universidades e instituciones organizadoras
+          </p>
+        </div>
 
-        {institutions.length === 0 ? (
-          /* Skeleton mientras carga */
-          <div className="flex items-center gap-6 px-6">
-            {Array.from({ length: 7 }).map((_, i) => (
-              <div key={i} className={`flex-shrink-0 w-28 h-16 rounded-lg animate-pulse ${
-                isDark ? 'bg-gray-700' : 'bg-gray-200'
-              }`} />
-            ))}
-          </div>
-        ) : (
-          /* Pista del carrusel — dos copias para el loop perfecto */
-          <div className="logos-marquee">
-            {[0, 1].map((pass) => (
-              <div key={pass} className="logos-marquee-inner">
-                {institutions.map((org) => (
-                  <div
-                    key={org.id + '-' + pass}
-                    title={org.name}
-                    className={`inline-flex flex-col items-center gap-1.5 mx-5 cursor-default select-none
-                      transition-all duration-300 group flex-shrink-0 ${
-                      isDark ? 'opacity-40 hover:opacity-90' : 'opacity-65 hover:opacity-100'
-                    }`}
-                  >
-                    {/* Caja del logo — 120×68 px fija para alinear todos al mismo alto */}
-                    <div className="w-32 h-[68px] flex items-center justify-center
-                      group-hover:scale-110 transition-transform duration-300">
-                      {org.logoUrl ? (
-                        <img
-                          src={getFileUrl(org.logoUrl)}
-                          alt={org.shortName || org.name}
-                          className="max-w-full max-h-full object-contain"
-                          onError={(e) => {
-                            const target = e.currentTarget;
-                            target.style.display = 'none';
-                            const ph = target.nextElementSibling as HTMLElement;
-                            if (ph) ph.style.display = 'flex';
-                          }}
-                        />
-                      ) : null}
-                      {/* Placeholder cuando no hay logo subido o la imagen falla */}
-                      <div
-                        className={`w-14 h-14 rounded-2xl items-center justify-center
-                          text-white shadow-md ${
-                          org.logoUrl ? 'hidden' : 'flex'
-                        }`}
-                        style={{ backgroundColor: getFallbackColor(org.shortName) }}
-                      >
-                        <Building2 size={22} className="opacity-80" />
+        {/* Pista con overflow hidden para cortar el carrusel */}
+        <div className="overflow-hidden w-full">
+          {institutions.length === 0 ? (
+            /* Skeleton mientras carga */
+            <div className="flex items-center gap-6 px-6">
+              {Array.from({ length: 7 }).map((_, i) => (
+                <div key={i} className={`flex-shrink-0 w-28 h-16 rounded-lg animate-pulse ${
+                  isDark ? 'bg-gray-700' : 'bg-gray-200'
+                }`} />
+              ))}
+            </div>
+          ) : (
+            /* Dos copias para el loop perfecto */
+            <div className="logos-marquee">
+              {[0, 1].map((pass) => (
+                <div key={pass} className="logos-marquee-inner">
+                  {institutions.map((org) => (
+                    <div
+                      key={org.id + '-' + pass}
+                      title={org.name}
+                      className={`inline-flex flex-col items-center gap-1.5 mx-5 cursor-default select-none
+                        transition-all duration-300 group flex-shrink-0 ${
+                        isDark ? 'opacity-40 hover:opacity-90' : 'opacity-65 hover:opacity-100'
+                      }`}
+                    >
+                      {/* Caja del logo — 128×68 px fija */}
+                      <div className="w-32 h-[68px] flex items-center justify-center
+                        group-hover:scale-110 transition-transform duration-300">
+                        {org.logoUrl ? (
+                          <img
+                            src={getFileUrl(org.logoUrl)}
+                            alt={org.shortName || org.name}
+                            className="max-w-full max-h-full object-contain"
+                            onError={(e) => {
+                              const target = e.currentTarget;
+                              target.style.display = 'none';
+                              const ph = target.nextElementSibling as HTMLElement;
+                              if (ph) ph.style.display = 'flex';
+                            }}
+                          />
+                        ) : null}
+                        {/* Placeholder sin logo */}
+                        <div
+                          className={`w-14 h-14 rounded-2xl items-center justify-center
+                            text-white shadow-md ${
+                            org.logoUrl ? 'hidden' : 'flex'
+                          }`}
+                          style={{ backgroundColor: getFallbackColor(org.shortName) }}
+                        >
+                          <Building2 size={22} className="opacity-80" />
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Sigla o abreviatura */}
-                    <span className={`text-[9px] font-bold leading-tight text-center ${
-                      isDark ? 'text-gray-500' : 'text-gray-400'
-                    }`}>
-                      {org.shortName
-                        || org.name.split(' ').filter(w => w.length > 2).map(w => w[0]).join('').slice(0, 6)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
+                      {/* Sigla */}
+                      <span className={`text-[9px] font-bold leading-tight text-center ${
+                        isDark ? 'text-gray-500' : 'text-gray-400'
+                      }`}>
+                        {org.shortName
+                          || org.name.split(' ').filter((w: string) => w.length > 2).map((w: string) => w[0]).join('').slice(0, 6)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Main footer body — deep green (UMAYOR style) ─────────────── */}

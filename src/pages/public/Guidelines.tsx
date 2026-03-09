@@ -1,11 +1,58 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   FileText, AlignLeft, Image, Shield, Upload, CheckCircle, Award, Book,
-  Download, Presentation, FileIcon,
+  Download, Presentation, FileIcon, Loader2,
 } from 'lucide-react';
 import { eventsApi } from '../../api/events.api';
 import { guidelinesApi } from '../../api/index';
 import { useTheme } from '../../hooks/useTheme';
+import { Guideline } from '../../types';
+import toast from 'react-hot-toast';
+
+/** Botón de descarga para pautas con archivo en Backblaze B2 (privado) */
+function DownloadGuidelineButton({ g, isDark }: { g: Guideline; isDark: boolean }) {
+  const [loading, setLoading] = useState(false);
+
+  const handleClick = async () => {
+    setLoading(true);
+    try {
+      const { url, fileName } = await guidelinesApi.getDownloadUrl(g.id);
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.download = fileName || g.fileName || 'archivo';
+      a.click();
+    } catch {
+      toast.error('No se pudo obtener el enlace de descarga');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const FileIcon_ = g.fileMimeType?.includes('pdf')
+    ? FileText
+    : g.fileMimeType?.includes('presentation') || g.fileMimeType?.includes('powerpoint')
+    ? Presentation
+    : FileIcon;
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={loading}
+      className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-60 ${
+        isDark
+          ? 'bg-primary-800 text-primary-200 hover:bg-primary-700'
+          : 'bg-primary-50 text-primary-700 border border-primary-200 hover:bg-primary-100'
+      }`}
+    >
+      {loading ? <Loader2 size={16} className="animate-spin flex-shrink-0" /> : <FileIcon_ size={16} className="flex-shrink-0" />}
+      {loading ? <Loader2 size={14} className="animate-spin flex-shrink-0" /> : <Download size={14} className="flex-shrink-0" />}
+      <span>{loading ? 'Generando enlace...' : `Descargar ${g.fileName ?? 'archivo adjunto'}`}</span>
+    </button>
+  );
+}
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   FileText: <FileText size={22} />,
@@ -123,27 +170,7 @@ export default function Guidelines() {
                 {/* Archivo adjunto descargable */}
                 {g.fileUrl && (
                   <div className={`px-6 pb-6`}>
-                    <a
-                      href={`${import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'http://localhost:3000'}${g.fileUrl}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      download={g.fileName ?? true}
-                      className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        isDark
-                          ? 'bg-primary-800 text-primary-200 hover:bg-primary-700'
-                          : 'bg-primary-50 text-primary-700 border border-primary-200 hover:bg-primary-100'
-                      }`}
-                    >
-                      {g.fileMimeType?.includes('pdf') ? (
-                        <FileText size={16} className="flex-shrink-0" />
-                      ) : g.fileMimeType?.includes('presentation') || g.fileMimeType?.includes('powerpoint') ? (
-                        <Presentation size={16} className="flex-shrink-0" />
-                      ) : (
-                        <FileIcon size={16} className="flex-shrink-0" />
-                      )}
-                      <Download size={14} className="flex-shrink-0" />
-                      <span>Descargar {g.fileName ?? 'archivo adjunto'}</span>
-                    </a>
+                    <DownloadGuidelineButton g={g} isDark={isDark} />
                   </div>
                 )}
               </div>

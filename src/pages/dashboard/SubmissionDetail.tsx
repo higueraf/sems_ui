@@ -1,9 +1,9 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
-  ArrowLeft, Mail, Send, ExternalLink, Upload, Trash2, Image,
+  ArrowLeft, Mail, Send, Download, Upload, Trash2, Image, Loader2,
 } from 'lucide-react';
 import { submissionsApi } from '../../api/submissions.api';
 import { usersApi } from '../../api/index';
@@ -34,7 +34,7 @@ export default function SubmissionDetail() {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [notifyApplicant, setNotifyApplicant] = useState(true);
   const [uploadingPhotoId, setUploadingPhotoId] = useState<string | null>(null);
-  const photoInputRef = useRef<HTMLInputElement>(null);
+  const [downloadingFile, setDownloadingFile] = useState(false);
 
   const { data: sub, isLoading } = useQuery({
     queryKey: ['submission', id],
@@ -303,16 +303,32 @@ export default function SubmissionDetail() {
               ))}
             </dl>
             {sub.fileUrl && (
-              <a
-                href={getFileUrl(sub.fileUrl)}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={async () => {
+                  setDownloadingFile(true);
+                  try {
+                    const { url, fileName } = await submissionsApi.getDownloadUrl(sub.id);
+                    // Abrir la presigned URL de B2 en una nueva pestaña
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.target = '_blank';
+                    a.rel = 'noopener noreferrer';
+                    a.download = fileName || 'manuscrito';
+                    a.click();
+                  } catch {
+                    toast.error('No se pudo obtener el enlace de descarga');
+                  } finally {
+                    setDownloadingFile(false);
+                  }
+                }}
+                disabled={downloadingFile}
                 className="btn-outline btn-sm flex items-center gap-1 mt-4 w-full justify-center"
-                download={sub.fileName || true}
               >
-                <ExternalLink size={14} />
-                Descargar Archivo ({sub.fileName || 'documento'})
-              </a>
+                {downloadingFile
+                  ? <Loader2 size={14} className="animate-spin" />
+                  : <Download size={14} />}
+                {downloadingFile ? 'Generando enlace...' : `Descargar Manuscrito (${sub.fileName || 'documento'})`}
+              </button>
             )}
           </div>
 

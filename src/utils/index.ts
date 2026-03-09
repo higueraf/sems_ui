@@ -47,10 +47,19 @@ export const ORGANIZER_ROLE_LABELS: Record<string, string> = {
 export const cn = (...classes: (string | undefined | null | false)[]) =>
   classes.filter(Boolean).join(' ');
 
-/** Converts a relative /uploads/... path to the full backend URL */
+/**
+ * Resuelve una URL de imagen almacenada en Cloudinary.
+ * - URLs de Cloudinary (https://res.cloudinary.com/...): se devuelven tal cual.
+ * - Rutas legadas /uploads/...: se convierten al origen del API (solo dev).
+ * - Referencias B2 (b2://...): NO son URLs públicas — usar storage.getSignedUrl() en el backend.
+ */
 const API_ORIGIN = ((import.meta as any).env?.VITE_API_URL || 'http://localhost:3000/api').replace(/\/api$/, '');
 export const getFileUrl = (path?: string | null): string => {
   if (!path) return '';
+  // URL absoluta (Cloudinary CDN u otra): devolver directamente
   if (path.startsWith('http')) return path;
+  // Referencia interna B2 — no es una URL pública, no se puede mostrar directamente
+  if (path.startsWith('b2://')) return '';
+  // Ruta legada /uploads/... (solo desarrollo local)
   return `${API_ORIGIN}${path}`;
 };

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/auth.store';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { useKeepAlive } from './hooks/useKeepAlive';
 
 // Public pages
 import PublicLayout from './components/public/PublicLayout';
@@ -34,10 +35,16 @@ function PrivateRoute({ children, adminOnly = false }: { children: React.ReactNo
   return <>{children}</>;
 }
 
+function AppInner() {
+  useKeepAlive();
+  return null;
+}
+
 export default function App() {
   return (
     <ThemeProvider>
     <BrowserRouter>
+      <AppInner />
       <Routes>
         {/* Public */}
         <Route element={<PublicLayout />}>
