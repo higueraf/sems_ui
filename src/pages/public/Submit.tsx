@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, Upload, CheckCircle, User, FileText } from 'lucide-react';
+import { Plus, Trash2, Upload, CheckCircle, User, FileText, Camera, X } from 'lucide-react';
 import { eventsApi } from '../../api/events.api';
 import { submissionsApi } from '../../api/submissions.api';
 import { countriesApi, productTypesApi, thematicAxesApi } from '../../api/index';
@@ -25,7 +25,6 @@ const authorSchema = z.object({
 const formSchema = z.object({
   eventId: z.string().uuid(),
   thematicAxisId: z.string().uuid('Seleccione un eje temático'),
-  // Acepta uno o más IDs de tipo de producto
   productTypeIds: z
     .array(z.string().uuid())
     .min(1, 'Seleccione al menos un tipo de producto científico'),
@@ -49,18 +48,111 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
-
 type Step = 'info' | 'authors' | 'content' | 'confirm';
+
 const STEPS: { key: Step; label: string; icon: React.ReactNode }[] = [
-  { key: 'info', label: 'Información', icon: <FileText size={16} /> },
-  { key: 'authors', label: 'Autores', icon: <User size={16} /> },
-  { key: 'content', label: 'Contenido', icon: <FileText size={16} /> },
-  { key: 'confirm', label: 'Confirmar', icon: <CheckCircle size={16} /> },
+  { key: 'info',    label: 'Información', icon: <FileText size={16} /> },
+  { key: 'authors', label: 'Autores',     icon: <User size={16} /> },
+  { key: 'content', label: 'Contenido',   icon: <FileText size={16} /> },
+  { key: 'confirm', label: 'Confirmar',   icon: <CheckCircle size={16} /> },
 ];
 
+// ── Componente de foto de autor ──────────────────────────────────────────────
+
+interface AuthorPhotoPickerProps {
+  index: number;
+  authorName: string;
+  photo: File | null;
+  onChange: (file: File | null) => void;
+}
+
+function AuthorPhotoPicker({ index, authorName, photo, onChange }: AuthorPhotoPickerProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const preview = photo ? URL.createObjectURL(photo) : null;
+
+  const handleFile = (file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('La foto no debe superar 5 MB');
+      return;
+    }
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      toast.error('Use JPG, PNG o WebP');
+      return;
+    }
+    onChange(file);
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      {/* Avatar circular con preview o placeholder */}
+      <div
+        className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-dashed border-gray-300 bg-gray-50 cursor-pointer hover:border-primary-400 transition-colors group"
+        onClick={() => inputRef.current?.click()}
+        title="Clic para subir foto"
+      >
+        {preview ? (
+          <>
+            <img
+              src={preview}
+              alt={`Foto ${authorName || `Autor ${index + 1}`}`}
+              className="w-full h-full object-cover"
+            />
+            {/* Overlay al hover */}
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <Camera size={20} className="text-white" />
+            </div>
+          </>
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 gap-1">
+            <Camera size={22} />
+            <span className="text-[10px] text-center leading-tight px-1">Foto del ponente</span>
+          </div>
+        )}
+      </div>
+
+      {/* Botones de acción */}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className="text-xs text-primary-600 hover:text-primary-800 font-medium underline underline-offset-2"
+        >
+          {preview ? 'Cambiar' : 'Subir foto'}
+        </button>
+        {preview && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onChange(null); }}
+            className="text-xs text-red-400 hover:text-red-600 flex items-center gap-0.5"
+          >
+            <X size={12} /> Quitar
+          </button>
+        )}
+      </div>
+
+      <p className="text-[10px] text-gray-400 text-center">JPG/PNG/WebP · máx 5 MB<br />Opcional — para la agenda del evento</p>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) handleFile(f);
+          e.target.value = ''; // reset para permitir re-selección del mismo archivo
+        }}
+      />
+    </div>
+  );
+}
+
+// ── Componente principal ─────────────────────────────────────────────────────
+
 export default function Submit() {
-  const [step, setStep] = useState<Step>('info');
-  const [file, setFile] = useState<File | null>(null);
+  const [step, setStep]           = useState<Step>('info');
+  const [file, setFile]           = useState<File | null>(null);
+  const [authorPhotos, setAuthorPhotos] = useState<(File | null)[]>([null, null, null, null]);
   const [submitted, setSubmitted] = useState<{ referenceCode: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -79,7 +171,6 @@ export default function Submit() {
     queryFn: () => productTypesApi.getAll(true),
   });
 
-  // ── Carga ejes temáticos desde el endpoint dedicado con el eventId ──────────
   const { data: thematicAxes } = useQuery({
     queryKey: ['thematic-axes-public', event?.id],
     queryFn: () => thematicAxesApi.getPublic(event!.id),
@@ -87,20 +178,12 @@ export default function Submit() {
   });
 
   const {
-    register,
-    control,
-    handleSubmit,
-    watch,
-    formState: { errors },
-    trigger,
-    setValue,
-    getValues,
+    register, control, handleSubmit, watch,
+    formState: { errors }, trigger, setValue, getValues,
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      // eventId se inyecta en onSubmit directamente desde event?.id
-      // para evitar el problema de defaultValues que no se actualizan
-      eventId: '00000000-0000-0000-0000-000000000000', // placeholder válido para Zod
+      eventId: '00000000-0000-0000-0000-000000000000',
       productTypeIds: [],
       authors: [{ fullName: '', email: '', isCorresponding: true, authorOrder: 0 }],
     },
@@ -108,18 +191,15 @@ export default function Submit() {
 
   const { fields, append, remove } = useFieldArray({ control, name: 'authors' });
 
-  /** Alterna la selección de un tipo de producto (multi-check) */
   const toggleProductType = (id: string) => {
     const current = getValues('productTypeIds') ?? [];
-    const next = current.includes(id)
-      ? current.filter((x) => x !== id)
-      : [...current, id];
+    const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
     setValue('productTypeIds', next, { shouldValidate: true });
   };
 
   const handleNext = async () => {
     const fieldsToValidate: Record<Step, (keyof FormValues)[]> = {
-      info: ['thematicAxisId', 'productTypeIds', 'titleEs', 'abstractEs', 'countryId'],
+      info:    ['thematicAxisId', 'productTypeIds', 'titleEs', 'abstractEs', 'countryId'],
       authors: ['authors'],
       content: [],
       confirm: [],
@@ -134,20 +214,16 @@ export default function Submit() {
 
   const onSubmit = async (data: FormValues) => {
     const eventId = event?.id;
-    if (!eventId) {
-      toast.error('No hay evento activo. Recargue la página.');
-      return;
-    }
+    if (!eventId) { toast.error('No hay evento activo. Recargue la página.'); return; }
 
     setIsSubmitting(true);
     try {
       const formData = new FormData();
 
-      // Sobreescribir eventId con el valor real del evento cargado
       const payload = {
         ...data,
         eventId,
-        productTypeId: data.productTypeIds[0], // compatibilidad backend
+        productTypeId: data.productTypeIds[0],
         authors: data.authors.map((a, i) => ({ ...a, authorOrder: i })),
       };
 
@@ -160,17 +236,20 @@ export default function Submit() {
         }
       });
 
+      // Manuscrito
       if (file) formData.append('file', file);
+
+      // Fotos de autores — fieldname = "authorPhoto_0", "authorPhoto_1", ...
+      authorPhotos.forEach((photo, idx) => {
+        if (photo) formData.append(`authorPhoto_${idx}`, photo, photo.name);
+      });
 
       const result = await submissionsApi.create(formData);
       setSubmitted({ referenceCode: result.referenceCode });
     } catch (err: any) {
       const msg = err?.response?.data?.message;
-      if (Array.isArray(msg)) {
-        toast.error(msg.join(' | '));
-      } else {
-        toast.error(msg || 'Error al enviar la postulación');
-      }
+      if (Array.isArray(msg)) toast.error(msg.join(' | '));
+      else toast.error(msg || 'Error al enviar la postulación');
       console.error('[Submit] error:', err?.response?.data ?? err);
     } finally {
       setIsSubmitting(false);
@@ -218,15 +297,10 @@ export default function Submit() {
         <div className="flex items-center justify-center mb-8 overflow-x-auto">
           {STEPS.map((s, i) => (
             <div key={s.key} className="flex items-center">
-              <div
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${
-                  i <= stepIndex
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-gray-200 text-gray-500'
-                }`}
-              >
-                {s.icon}
-                {s.label}
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${
+                i <= stepIndex ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-500'
+              }`}>
+                {s.icon}{s.label}
               </div>
               {i < STEPS.length - 1 && (
                 <div className={`w-8 h-0.5 mx-1 ${i < stepIndex ? 'bg-primary-500' : 'bg-gray-300'}`} />
@@ -237,7 +311,8 @@ export default function Submit() {
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="card">
-            {/* STEP 1: Info */}
+
+            {/* ── STEP 1: Información ────────────────────────────────────── */}
             {step === 'info' && (
               <div className="space-y-6">
                 <h2 className="font-heading font-bold text-xl text-gray-800 border-b pb-3">
@@ -247,7 +322,6 @@ export default function Submit() {
                 {event?.id && <input type="hidden" {...register('eventId')} value={event.id} />}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Eje Temático — cargado desde endpoint dedicado */}
                   <div>
                     <label className="form-label">Eje Temático *</label>
                     <select className="form-input" {...register('thematicAxisId')}>
@@ -256,30 +330,17 @@ export default function Submit() {
                         <option key={axis.id} value={axis.id}>{axis.name}</option>
                       ))}
                     </select>
-                    {errors.thematicAxisId && (
-                      <p className="form-error">{errors.thematicAxisId.message}</p>
-                    )}
+                    {errors.thematicAxisId && <p className="form-error">{errors.thematicAxisId.message}</p>}
                   </div>
 
-                  {/* Tipo de Producto Científico — múltiple selección con checkboxes */}
                   <div>
                     <label className="form-label">Tipo de Producto Científico *</label>
                     <div className="border border-gray-300 rounded-lg divide-y divide-gray-100 max-h-56 overflow-y-auto">
                       {productTypes?.map((pt) => {
                         const checked = selectedProductTypeIds.includes(pt.id);
                         return (
-                          <label
-                            key={pt.id}
-                            className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-gray-50 transition-colors ${
-                              checked ? 'bg-primary-50' : ''
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => toggleProductType(pt.id)}
-                              className="w-4 h-4 accent-primary-500 shrink-0"
-                            />
+                          <label key={pt.id} className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-gray-50 transition-colors ${checked ? 'bg-primary-50' : ''}`}>
+                            <input type="checkbox" checked={checked} onChange={() => toggleProductType(pt.id)} className="w-4 h-4 accent-primary-500 shrink-0" />
                             <span className="text-sm text-gray-700 leading-tight">{pt.name}</span>
                           </label>
                         );
@@ -290,23 +351,19 @@ export default function Submit() {
                         {selectedProductTypeIds.length} tipo{selectedProductTypeIds.length > 1 ? 's' : ''} seleccionado{selectedProductTypeIds.length > 1 ? 's' : ''}
                       </p>
                     )}
-                    {errors.productTypeIds && (
-                      <p className="form-error">{errors.productTypeIds.message as string}</p>
-                    )}
+                    {errors.productTypeIds && <p className="form-error">{errors.productTypeIds.message as string}</p>}
                   </div>
                 </div>
 
                 <div>
                   <label className="form-label">Título en Español * (tamaño 14)</label>
-                  <input type="text" className="form-input" {...register('titleEs')}
-                    placeholder="Título completo del trabajo en español" />
+                  <input type="text" className="form-input" {...register('titleEs')} placeholder="Título completo del trabajo en español" />
                   {errors.titleEs && <p className="form-error">{errors.titleEs.message}</p>}
                 </div>
 
                 <div>
                   <label className="form-label">Título en Inglés</label>
-                  <input type="text" className="form-input" {...register('titleEn')}
-                    placeholder="Title in English" />
+                  <input type="text" className="form-input" {...register('titleEn')} placeholder="Title in English" />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -319,7 +376,6 @@ export default function Submit() {
                       ))}
                     </select>
                   </div>
-
                   <div>
                     <label className="form-label">Número de páginas</label>
                     <input type="number" className="form-input" {...register('pageCount')} min={1} max={30} />
@@ -328,27 +384,23 @@ export default function Submit() {
 
                 <div>
                   <label className="form-label">Resumen en Español * (máximo 250 palabras)</label>
-                  <textarea rows={6} className="form-input resize-none" {...register('abstractEs')}
-                    placeholder="Escriba el resumen del trabajo..." />
+                  <textarea rows={6} className="form-input resize-none" {...register('abstractEs')} placeholder="Escriba el resumen del trabajo..." />
                   {errors.abstractEs && <p className="form-error">{errors.abstractEs.message}</p>}
                 </div>
 
                 <div>
                   <label className="form-label">Palabras Clave en Español (máximo 6, orden alfabético)</label>
-                  <input type="text" className="form-input" {...register('keywordsEs')}
-                    placeholder="palabra1, palabra2, palabra3" />
+                  <input type="text" className="form-input" {...register('keywordsEs')} placeholder="palabra1, palabra2, palabra3" />
                 </div>
 
                 <div>
                   <label className="form-label">Abstract (English)</label>
-                  <textarea rows={4} className="form-input resize-none" {...register('abstractEn')}
-                    placeholder="Write the abstract in English..." />
+                  <textarea rows={4} className="form-input resize-none" {...register('abstractEn')} placeholder="Write the abstract in English..." />
                 </div>
 
                 <div>
                   <label className="form-label">Keywords (English)</label>
-                  <input type="text" className="form-input" {...register('keywordsEn')}
-                    placeholder="keyword1, keyword2, keyword3" />
+                  <input type="text" className="form-input" {...register('keywordsEn')} placeholder="keyword1, keyword2, keyword3" />
                 </div>
 
                 <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
@@ -361,14 +413,13 @@ export default function Submit() {
                 {watch('usesAi') && (
                   <div>
                     <label className="form-label">Descripción del uso de IA</label>
-                    <textarea rows={3} className="form-input resize-none" {...register('aiUsageDescription')}
-                      placeholder="Describa cómo se utilizó la IA en este trabajo..." />
+                    <textarea rows={3} className="form-input resize-none" {...register('aiUsageDescription')} placeholder="Describa cómo se utilizó la IA en este trabajo..." />
                   </div>
                 )}
               </div>
             )}
 
-            {/* STEP 2: Authors */}
+            {/* ── STEP 2: Autores ────────────────────────────────────────── */}
             {step === 'authors' && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between border-b pb-3">
@@ -381,15 +432,22 @@ export default function Submit() {
                       onClick={() => append({ fullName: '', email: '', isCorresponding: false, authorOrder: fields.length })}
                       className="btn-outline btn-sm flex items-center gap-1"
                     >
-                      <Plus size={16} />
-                      Agregar Autor
+                      <Plus size={16} /> Agregar Autor
                     </button>
                   )}
                 </div>
 
+                {/* Aviso contextual sobre las fotos */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 flex items-start gap-3 text-sm text-blue-800">
+                  <Camera size={18} className="shrink-0 mt-0.5 text-blue-500" />
+                  <p>
+                    <strong>Foto del ponente (opcional):</strong> Si el trabajo es aprobado, la foto se utilizará en la agenda pública del evento. Puede subirla ahora o el comité la solicitará posteriormente.
+                  </p>
+                </div>
+
                 {fields.map((field, index) => (
                   <div key={field.id} className="border border-gray-200 rounded-xl p-6 relative">
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mb-5">
                       <h3 className="font-semibold text-gray-700 flex items-center gap-2">
                         <div className="w-7 h-7 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-sm font-bold">
                           {index + 1}
@@ -405,9 +463,7 @@ export default function Submit() {
                             type="radio"
                             name="correspondingAuthor"
                             checked={watch(`authors.${index}.isCorresponding`)}
-                            onChange={() => {
-                              fields.forEach((_, i) => setValue(`authors.${i}.isCorresponding`, i === index));
-                            }}
+                            onChange={() => fields.forEach((_, i) => setValue(`authors.${i}.isCorresponding`, i === index))}
                             className="w-4 h-4 accent-primary-500"
                           />
                           Autor de correspondencia
@@ -420,45 +476,66 @@ export default function Submit() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="form-label">Nombres Completos *</label>
-                        <input className="form-input" {...register(`authors.${index}.fullName`)} placeholder="Nombre Apellido" />
-                        {errors.authors?.[index]?.fullName && <p className="form-error">{errors.authors[index]?.fullName?.message}</p>}
+                    {/* Layout: foto a la izquierda, campos a la derecha */}
+                    <div className="flex flex-col sm:flex-row gap-6">
+
+                      {/* Foto del autor */}
+                      <div className="flex-shrink-0 flex justify-center sm:justify-start">
+                        <AuthorPhotoPicker
+                          index={index}
+                          authorName={watch(`authors.${index}.fullName`)}
+                          photo={authorPhotos[index]}
+                          onChange={(f) => {
+                            setAuthorPhotos(prev => {
+                              const next = [...prev];
+                              next[index] = f;
+                              return next;
+                            });
+                          }}
+                        />
                       </div>
-                      <div>
-                        <label className="form-label">Título Académico</label>
-                        <input className="form-input" {...register(`authors.${index}.academicTitle`)} placeholder="Dr., Mg., PhD." />
-                      </div>
-                      <div>
-                        <label className="form-label">Afiliación Institucional</label>
-                        <input className="form-input" {...register(`authors.${index}.affiliation`)} placeholder="Universidad / Institución" />
-                      </div>
-                      <div>
-                        <label className="form-label">Email Institucional *</label>
-                        <input type="email" className="form-input" {...register(`authors.${index}.email`)} placeholder="autor@universidad.edu" />
-                        {errors.authors?.[index]?.email && <p className="form-error">{errors.authors[index]?.email?.message}</p>}
-                      </div>
-                      <div>
-                        <label className="form-label">ORCID</label>
-                        <input className="form-input" {...register(`authors.${index}.orcid`)} placeholder="0000-0000-0000-0000" />
-                      </div>
-                      <div>
-                        <label className="form-label">Teléfono</label>
-                        <input className="form-input" {...register(`authors.${index}.phone`)} placeholder="+593 999 999 999" />
-                      </div>
-                      <div>
-                        <label className="form-label">País</label>
-                        <select className="form-input" {...register(`authors.${index}.countryId`)}>
-                          <option value="">Seleccione...</option>
-                          {countries?.map((c) => (
-                            <option key={c.id} value={c.id}>{c.flagEmoji} {c.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="form-label">Ciudad</label>
-                        <input className="form-input" {...register(`authors.${index}.city`)} placeholder="Ciudad" />
+
+                      {/* Campos del autor */}
+                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="form-label">Nombres Completos *</label>
+                          <input className="form-input" {...register(`authors.${index}.fullName`)} placeholder="Nombre Apellido" />
+                          {errors.authors?.[index]?.fullName && <p className="form-error">{errors.authors[index]?.fullName?.message}</p>}
+                        </div>
+                        <div>
+                          <label className="form-label">Título Académico</label>
+                          <input className="form-input" {...register(`authors.${index}.academicTitle`)} placeholder="Dr., Mg., PhD." />
+                        </div>
+                        <div>
+                          <label className="form-label">Afiliación Institucional</label>
+                          <input className="form-input" {...register(`authors.${index}.affiliation`)} placeholder="Universidad / Institución" />
+                        </div>
+                        <div>
+                          <label className="form-label">Email Institucional *</label>
+                          <input type="email" className="form-input" {...register(`authors.${index}.email`)} placeholder="autor@universidad.edu" />
+                          {errors.authors?.[index]?.email && <p className="form-error">{errors.authors[index]?.email?.message}</p>}
+                        </div>
+                        <div>
+                          <label className="form-label">ORCID</label>
+                          <input className="form-input" {...register(`authors.${index}.orcid`)} placeholder="0000-0000-0000-0000" />
+                        </div>
+                        <div>
+                          <label className="form-label">Teléfono</label>
+                          <input className="form-input" {...register(`authors.${index}.phone`)} placeholder="+593 999 999 999" />
+                        </div>
+                        <div>
+                          <label className="form-label">País</label>
+                          <select className="form-input" {...register(`authors.${index}.countryId`)}>
+                            <option value="">Seleccione...</option>
+                            {countries?.map((c) => (
+                              <option key={c.id} value={c.id}>{c.flagEmoji} {c.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="form-label">Ciudad</label>
+                          <input className="form-input" {...register(`authors.${index}.city`)} placeholder="Ciudad" />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -466,7 +543,7 @@ export default function Submit() {
               </div>
             )}
 
-            {/* STEP 3: Content */}
+            {/* ── STEP 3: Contenido ──────────────────────────────────────── */}
             {step === 'content' && (
               <div className="space-y-6">
                 <h2 className="font-heading font-bold text-xl text-gray-800 border-b pb-3">
@@ -497,13 +574,7 @@ export default function Submit() {
                   <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-primary-400 transition-colors">
                     <Upload size={32} className="mx-auto text-gray-400 mb-3" />
                     <p className="text-gray-500 text-sm mb-3">Arrastre su archivo aquí o haga clic para seleccionar</p>
-                    <input
-                      type="file"
-                      accept=".doc,.docx,.pdf"
-                      onChange={(e) => setFile(e.target.files?.[0] || null)}
-                      className="hidden"
-                      id="file-upload"
-                    />
+                    <input type="file" accept=".doc,.docx,.pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} className="hidden" id="file-upload" />
                     <label htmlFor="file-upload" className="btn-outline btn-sm cursor-pointer inline-block">
                       Seleccionar Archivo
                     </label>
@@ -518,7 +589,7 @@ export default function Submit() {
               </div>
             )}
 
-            {/* STEP 4: Confirm */}
+            {/* ── STEP 4: Confirmar ──────────────────────────────────────── */}
             {step === 'confirm' && (
               <div className="space-y-6">
                 <h2 className="font-heading font-bold text-xl text-gray-800 border-b pb-3">
@@ -550,17 +621,34 @@ export default function Submit() {
                       })}
                     </ul>
                   </div>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <p className="font-semibold text-gray-600 mb-2">Autores</p>
-                    <ul className="text-gray-800 space-y-1">
-                      {watch('authors').map((a, i) => (
-                        <li key={i} className="flex items-center gap-1">
-                          {a.fullName || `Autor ${i + 1}`}
-                          {a.isCorresponding && <span className="text-xs text-primary-600">(correspondencia)</span>}
-                        </li>
-                      ))}
-                    </ul>
+
+                  {/* Resumen visual de autores con fotos */}
+                  <div className="bg-gray-50 rounded-lg p-4 md:col-span-2">
+                    <p className="font-semibold text-gray-600 mb-3">Autores</p>
+                    <div className="flex flex-wrap gap-4">
+                      {watch('authors').map((a, i) => {
+                        const photo = authorPhotos[i];
+                        const preview = photo ? URL.createObjectURL(photo) : null;
+                        return (
+                          <div key={i} className="flex items-center gap-3 bg-white rounded-lg px-3 py-2 border border-gray-200 min-w-[200px]">
+                            {/* Mini avatar */}
+                            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 flex-shrink-0 flex items-center justify-center">
+                              {preview
+                                ? <img src={preview} alt={a.fullName} className="w-full h-full object-cover" />
+                                : <User size={18} className="text-gray-400" />
+                              }
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-800 leading-tight">{a.fullName || `Autor ${i + 1}`}</p>
+                              {a.isCorresponding && <span className="text-xs text-primary-600">correspondencia</span>}
+                              {preview && <p className="text-xs text-green-600">📸 foto incluida</p>}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
+
                   {file && (
                     <div className="bg-gray-50 rounded-lg p-4">
                       <p className="font-semibold text-gray-600 mb-2">Archivo adjunto</p>
@@ -571,7 +659,7 @@ export default function Submit() {
               </div>
             )}
 
-            {/* Navigation */}
+            {/* ── Navegación ────────────────────────────────────────────── */}
             <div className="flex justify-between pt-6 border-t mt-6">
               <button
                 type="button"

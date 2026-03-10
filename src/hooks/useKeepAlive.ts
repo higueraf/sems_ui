@@ -1,19 +1,21 @@
 /**
  * useKeepAlive.ts
  * ─────────────────────────────────────────────────────────────────────────────
- * Hook que hace un ping al backend cada N minutos para evitar el spin-down
- * de Render (el plan gratuito suspende instancias tras ~15 min de inactividad).
+ * Hace ping al backend cada 10 min SIEMPRE — incluso con el tab en background.
  *
- * Estrategia:
- *  - Ping cada 10 minutos mientras el tab está visible
- *  - Pausa automáticamente cuando el tab queda en background (visibilitychange)
- *  - Reactiva al volver al tab
- *  - No emite errores visibles al usuario — solo log en consola dev
+ * PROBLEMA ORIGINAL:
+ *   El hook pausaba el ping cuando el tab quedaba en background (visibilitychange).
+ *   Esto permitía que Render durmiera el servicio si nadie tenía el tab activo.
+ *
+ * SOLUCIÓN:
+ *   - setInterval sin pausas por visibilidad (el timer sigue en background)
+ *   - Ping adicional al volver al tab (por si hubo cold start mientras estaba oculto)
+ *   - Manejo silencioso de errores (no rompe la UX si el ping falla)
  */
 import { useEffect, useRef } from 'react';
 
 const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000/api';
-const PING_INTERVAL_MS = 10 * 60 * 1000; // 10 minutos
+const PING_INTERVAL_MS = 10 * 60 * 1000; // 10 min — Render duerme a los 15 min
 
 export function useKeepAlive() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -22,46 +24,36 @@ export function useKeepAlive() {
     try {
       await fetch(`${API_URL}/health/ping`, {
         method: 'GET',
-        signal: AbortSignal.timeout(8000), // timeout 8s
+        signal: AbortSignal.timeout(10_000), // 10s timeout
       });
       if ((import.meta as any).env?.DEV) {
-        console.debug('[KeepAlive] ping ok →', new Date().toLocaleTimeString());
+        console.debug('[KeepAlive] ✅ ping ok →', new Date().toLocaleTimeString());
       }
     } catch {
-      // Silencioso en producción
       if ((import.meta as any).env?.DEV) {
-        console.warn('[KeepAlive] ping falló');
+        console.warn('[KeepAlive] ⚠️ ping falló (sin conexión o cold start)');
       }
-    }
-  };
-
-  const start = () => {
-    if (timerRef.current) return;
-    timerRef.current = setInterval(ping, PING_INTERVAL_MS);
-  };
-
-  const stop = () => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
     }
   };
 
   useEffect(() => {
-    // Ping inmediato al montar (despierta Render si está dormido)
+    // Ping inmediato al montar — despierta Render si estaba dormido
     ping();
-    start();
+
+    // Timer continuo — NO se pausa en background
+    timerRef.current = setInterval(ping, PING_INTERVAL_MS);
+
+    // Ping extra al volver al tab — el servicio pudo haberse dormido
+    // durante el tiempo que el usuario estuvo en otra pestaña
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
-        ping(); // ping inmediato al volver
-        start();
-      } else {
-        stop();
+        ping();
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
-      stop();
+      if (timerRef.current) clearInterval(timerRef.current);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, []);
