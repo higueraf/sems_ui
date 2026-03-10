@@ -10,6 +10,7 @@ import { usersApi } from '../../api/index';
 import { useAuthStore } from '../../store/auth.store';
 import { STATUS_CONFIG, formatDate, getFileUrl } from '../../utils';
 import { SubmissionStatus } from '../../types';
+import CustomEmailModal from '../../components/ui/CustomEmailModal';
 
 const TRANSITIONS: Record<SubmissionStatus, SubmissionStatus[]> = {
   received: ['under_review', 'withdrawn'],
@@ -415,39 +416,18 @@ export default function SubmissionDetail() {
         </div>
       </div>
 
-      {/* Email Modal */}
-      {showEmailModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-            <div className="p-6 border-b border-gray-100">
-              <h3 className="font-heading font-bold text-lg">Enviar Correo Personalizado</h3>
-              <p className="text-sm text-gray-500 mt-1">Para: {correspondingAuthor?.fullName} ({correspondingAuthor?.email})</p>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="form-label">Asunto</label>
-                <input className="form-input" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} placeholder="Asunto del correo..." />
-              </div>
-              <div>
-                <label className="form-label">Mensaje (HTML permitido)</label>
-                <textarea rows={8} className="form-input resize-none" value={emailBody} onChange={(e) => setEmailBody(e.target.value)} placeholder="<p>Mensaje...</p>" />
-              </div>
-            </div>
-            <div className="p-6 pt-0 flex gap-3 justify-end">
-              <button onClick={() => setShowEmailModal(false)} className="btn-outline btn-sm">
-                Cancelar
-              </button>
-              <button
-                onClick={() => emailMutation.mutate()}
-                disabled={!emailSubject || !emailBody || emailMutation.isPending}
-                className="btn-primary btn-sm flex items-center gap-2"
-              >
-                <Send size={14} />
-                Enviar
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Email Modal — editor WYSIWYG */}
+      {showEmailModal && correspondingAuthor && (
+        <CustomEmailModal
+          toName={correspondingAuthor.fullName}
+          toEmail={correspondingAuthor.email}
+          title="Correo Personalizado"
+          onClose={() => setShowEmailModal(false)}
+          onSend={async (subject, body) => {
+            await submissionsApi.sendEmail(id!, { subject, body });
+            toast.success('Correo enviado correctamente');
+          }}
+        />
       )}
     </div>
   );

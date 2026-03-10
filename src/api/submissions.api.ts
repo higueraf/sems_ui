@@ -60,4 +60,7 @@ export const submissionsApi = {
    */
   getDownloadUrl: (id: string) =>
     api.get<{ url: string; fileName: string }>(`/submissions/admin/${id}/download`).then((r) => r.data),
+
+  sendBulkEmail: (data: { subject: string; body: string; eventId: string; status?: string }) =>
+    api.post<{ queued: number; message: string }>('/submissions/admin/bulk-email', data).then((r) => r.data),
 };
