@@ -2,16 +2,18 @@
  * CustomEmailModal — Modal reutilizable para redactar correos personalizados
  * con editor WYSIWYG (Quill). Se usa tanto en SubmissionDetail como en
  * el envío masivo (BulkEmailModal).
+ * 
+ * Ahora soporta adjuntos Word (.doc/.docx)
  */
 
-import { useState } from 'react';
-import { Mail, X, Send, Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Mail, X, Send, Loader2, CheckCircle, AlertTriangle, Upload, FileText, Trash2 } from 'lucide-react';
 import RichTextEditor from './RichTextEditor';
 
 interface Props {
   toName: string;
   toEmail: string;
-  onSend: (subject: string, body: string) => Promise<void>;
+  onSend: (subject: string, body: string, attachment?: File) => Promise<void>;
   onClose: () => void;
   title?: string;
 }
@@ -28,6 +30,8 @@ export default function CustomEmailModal({
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
+  const [attachment, setAttachment] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSend = async () => {
     if (!subject.trim()) { setError('El asunto es obligatorio.'); return; }
@@ -35,7 +39,7 @@ export default function CustomEmailModal({
     setError('');
     setSending(true);
     try {
-      await onSend(subject, body);
+      await onSend(subject, body, attachment || undefined);
       setSent(true);
     } catch (e: any) {
       setError(e?.response?.data?.message || 'Error al enviar el correo.');
@@ -109,6 +113,74 @@ export default function CustomEmailModal({
                   placeholder="Redacta el mensaje para el postulante..."
                   minHeight={240}
                 />
+              </div>
+
+              {/* Adjunto Word (opcional) */}
+              <div>
+                <label className="form-label">
+                  Adjunto Word (opcional)
+                  <span className="ml-2 text-xs font-normal text-gray-400">
+                    .doc/.docx — máx 10 MB
+                  </span>
+                </label>
+                <div className="space-y-2">
+                  {attachment ? (
+                    <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <FileText size={16} className="text-blue-500" />
+                        <span className="text-sm text-gray-700 truncate max-w-[250px]" title={attachment.name}>
+                          {attachment.name}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          ({(attachment.size / 1024 / 1024).toFixed(2)} MB)
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setAttachment(null)}
+                        className="text-red-400 hover:text-red-600 p-1"
+                        title="Quitar adjunto"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-colors"
+                    >
+                      <Upload size={20} className="mx-auto text-gray-400 mb-2" />
+                      <p className="text-sm text-gray-500">
+                        Clic para adjuntar documento Word
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        .doc/.docx — máx 10 MB
+                      </p>
+                    </div>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (file.size > 10 * 1024 * 1024) {
+                          setError('El archivo adjunto no debe superar 10 MB');
+                          return;
+                        }
+                        if (!['application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.type)) {
+                          setError('Solo se permiten documentos Word (.doc/.docx)');
+                          return;
+                        }
+                        setAttachment(file);
+                        setError('');
+                      }
+                      e.target.value = '';
+                    }}
+                  />
+                </div>
               </div>
 
               {/* Nota informativa */}

@@ -60,8 +60,8 @@ function InstitutionCard({ org, isDark }: { org: Organizer; isDark: boolean }) {
     ? (isDark ? 'bg-amber-900/50 text-amber-300' : 'bg-amber-100 text-amber-700')
     : (isDark ? 'bg-gray-700 text-gray-300'       : 'bg-gray-100 text-gray-600');
 
-  return (
-    <div className={`${card} rounded-xl shadow-sm border p-5 flex flex-col hover:shadow-md transition-all duration-200`}>
+  const cardContent = (
+    <div className={`${card} rounded-xl shadow-sm border p-5 flex flex-col hover:shadow-md transition-all duration-200 ${org.website ? 'cursor-pointer hover:scale-[1.02]' : ''}`}>
       <div className="flex items-start gap-4 mb-3">
         {/* Logo */}
         <div className={`w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0
@@ -100,17 +100,31 @@ function InstitutionCard({ org, isDark }: { org: Organizer; isDark: boolean }) {
       )}
 
       {org.website && (
-        <a
-          href={org.website}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`flex items-center gap-1.5 text-xs mt-auto hover:underline ${green}`}
-        >
-          <Globe size={12} /> Sitio web
-        </a>
+        <div className={`flex items-center gap-1.5 text-xs mt-auto ${green}`}>
+          <Globe size={12} /> 
+          <span>{org.website.replace(/^https?:\/\//, '')}</span>
+        </div>
       )}
     </div>
   );
+
+  // Si tiene website, hacer toda la tarjeta clickeable
+  if (org.website) {
+    return (
+      <a
+        href={org.website}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block"
+        title={`Visitar sitio web de ${org.name}`}
+      >
+        {cardContent}
+      </a>
+    );
+  }
+
+  // Si no tiene website, mostrar la tarjeta sin link
+  return cardContent;
 }
 
 // ─── Tarjeta de persona (type=person en organizers OR OrganizerMember) ────────

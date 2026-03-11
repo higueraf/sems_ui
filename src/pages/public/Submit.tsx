@@ -11,15 +11,18 @@ import { countriesApi, productTypesApi, thematicAxesApi } from '../../api/index'
 
 const authorSchema = z.object({
   fullName: z.string().min(2, 'Nombre requerido'),
-  academicTitle: z.string().optional(),
+  academicTitle: z.string().min(1, 'Título académico requerido'),
   affiliation: z.string().optional(),
+  emailType: z.string().min(1, 'Tipo de correo requerido'),
   email: z.string().email('Email inválido'),
-  orcid: z.string().optional(),
+  orcid: z.string().url('ORCID debe ser una URL válida').regex(/^https:\/\/orcid\.org\/\d{4}-\d{4}-\d{4}-\d{3}[\dX]$/, 'ORCID debe tener el formato https://orcid.org/XXXX-XXXX-XXXX-XXXX'),
   phone: z.string().optional(),
   countryId: z.string().optional(),
   city: z.string().optional(),
   isCorresponding: z.boolean().default(false),
   authorOrder: z.number().default(0),
+  identityDocType: z.string().min(1, 'Tipo de documento requerido'),
+  identityDocNumber: z.string().min(1, 'Número de documento requerido'),
 });
 
 const formSchema = z.object({
@@ -130,12 +133,99 @@ function AuthorPhotoPicker({ index, authorName, photo, onChange }: AuthorPhotoPi
         )}
       </div>
 
-      <p className="text-[10px] text-gray-400 text-center">JPG/PNG/WebP · máx 5 MB<br />Opcional — para la agenda del evento</p>
+      <p className="text-[10px] text-gray-400 text-center">JPG/PNG/WebP · máx 5 MB<br />Obligatorio — para la agenda del evento</p>
 
       <input
         ref={inputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) handleFile(f);
+          e.target.value = ''; // reset para permitir re-selección del mismo archivo
+        }}
+      />
+    </div>
+  );
+}
+
+// ── Componente de documento de identidad de autor ────────────────────────────
+
+interface AuthorIdDocPickerProps {
+  index: number;
+  authorName: string;
+  idDoc: File | null;
+  onChange: (file: File | null) => void;
+}
+
+function AuthorIdDocPicker({ index, authorName, idDoc, onChange }: AuthorIdDocPickerProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = (file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('El documento no debe superar 5 MB');
+      return;
+    }
+    if (!['application/pdf'].includes(file.type)) {
+      toast.error('El documento debe estar en formato PDF');
+      return;
+    }
+    onChange(file);
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div
+        className="relative w-24 h-24 rounded-lg overflow-hidden border-2 border-dashed border-gray-300 bg-gray-50 cursor-pointer hover:border-primary-400 transition-colors group"
+        onClick={() => inputRef.current?.click()}
+        title="Clic para subir documento de identidad"
+      >
+        {idDoc ? (
+          <>
+            <div className="w-full h-full flex flex-col items-center justify-center text-red-600 gap-1">
+              <FileText size={22} />
+              <span className="text-[10px] text-center leading-tight px-1">PDF</span>
+            </div>
+            {/* Overlay al hover */}
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <Upload size={20} className="text-white" />
+            </div>
+          </>
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 gap-1">
+            <Upload size={22} />
+            <span className="text-[10px] text-center leading-tight px-1">Documento ID</span>
+          </div>
+        )}
+      </div>
+
+      {/* Botones de acción */}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className="text-xs text-primary-600 hover:text-primary-800 font-medium underline underline-offset-2"
+        >
+          {idDoc ? 'Cambiar' : 'Subir'}
+        </button>
+        {idDoc && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onChange(null); }}
+            className="text-xs text-red-400 hover:text-red-600 flex items-center gap-0.5"
+          >
+            <X size={12} /> Quitar
+          </button>
+        )}
+      </div>
+
+      <p className="text-[10px] text-gray-400 text-center">PDF · máx 5 MB<br />Requerido</p>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="application/pdf"
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];
@@ -153,6 +243,7 @@ export default function Submit() {
   const [step, setStep]           = useState<Step>('info');
   const [file, setFile]           = useState<File | null>(null);
   const [authorPhotos, setAuthorPhotos] = useState<(File | null)[]>([null, null, null, null]);
+  const [authorIdDocs, setAuthorIdDocs] = useState<(File | null)[]>([null, null, null, null]);
   const [submitted, setSubmitted] = useState<{ referenceCode: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -185,7 +276,17 @@ export default function Submit() {
     defaultValues: {
       eventId: '00000000-0000-0000-0000-000000000000',
       productTypeIds: [],
-      authors: [{ fullName: '', email: '', isCorresponding: true, authorOrder: 0 }],
+      authors: [{ 
+        fullName: '', 
+        academicTitle: '', 
+        emailType: '',
+        email: '', 
+        orcid: '', 
+        identityDocType: '', 
+        identityDocNumber: '',
+        isCorresponding: true, 
+        authorOrder: 0 
+      }],
     },
   });
 
@@ -244,6 +345,11 @@ export default function Submit() {
         if (photo) formData.append(`authorPhoto_${idx}`, photo, photo.name);
       });
 
+      // Documentos de identidad — fieldname = "authorIdDoc_0", "authorIdDoc_1", ...
+      authorIdDocs.forEach((doc, idx) => {
+        if (doc) formData.append(`authorIdDoc_${idx}`, doc, doc.name);
+      });
+
       const result = await submissionsApi.create(formData);
       setSubmitted({ referenceCode: result.referenceCode });
     } catch (err: any) {
@@ -283,7 +389,7 @@ export default function Submit() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-4xl mx-auto px-4">
+      <div className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-8">
           <h1 className="font-heading font-bold text-3xl text-gray-900 mb-2">
             Postulación de Trabajo Científico
@@ -429,7 +535,17 @@ export default function Submit() {
                   {fields.length < 4 && (
                     <button
                       type="button"
-                      onClick={() => append({ fullName: '', email: '', isCorresponding: false, authorOrder: fields.length })}
+                      onClick={() => append({ 
+        fullName: '', 
+        academicTitle: '', 
+        emailType: '',
+        email: '', 
+        orcid: '', 
+        identityDocType: '', 
+        identityDocNumber: '',
+        isCorresponding: false, 
+        authorOrder: fields.length 
+      })}
                       className="btn-outline btn-sm flex items-center gap-1"
                     >
                       <Plus size={16} /> Agregar Autor
@@ -437,12 +553,16 @@ export default function Submit() {
                   )}
                 </div>
 
-                {/* Aviso contextual sobre las fotos */}
+                {/* Aviso contextual sobre las fotos y documentos */}
                 <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 flex items-start gap-3 text-sm text-blue-800">
                   <Camera size={18} className="shrink-0 mt-0.5 text-blue-500" />
-                  <p>
-                    <strong>Foto del ponente (opcional):</strong> Si el trabajo es aprobado, la foto se utilizará en la agenda pública del evento. Puede subirla ahora o el comité la solicitará posteriormente.
-                  </p>
+                  <div>
+                    <p className="font-semibold mb-1">Documentos requeridos:</p>
+                    <ul className="list-disc ml-4 space-y-1">
+                      <li><strong>Foto del ponente (obligatoria):</strong> Se utilizará en la agenda pública del evento si el trabajo es aprobado</li>
+                      <li><strong>Documento de identidad (obligatorio):</strong> PDF de cédula/pasaporte para validación</li>
+                    </ul>
+                  </div>
                 </div>
 
                 {fields.map((field, index) => (
@@ -476,23 +596,42 @@ export default function Submit() {
                       </div>
                     </div>
 
-                    {/* Layout: foto a la izquierda, campos a la derecha */}
+                    {/* Layout: foto y documento de identidad a la izquierda, campos a la derecha */}
                     <div className="flex flex-col sm:flex-row gap-6">
 
-                      {/* Foto del autor */}
-                      <div className="flex-shrink-0 flex justify-center sm:justify-start">
-                        <AuthorPhotoPicker
-                          index={index}
-                          authorName={watch(`authors.${index}.fullName`)}
-                          photo={authorPhotos[index]}
-                          onChange={(f) => {
-                            setAuthorPhotos(prev => {
-                              const next = [...prev];
-                              next[index] = f;
-                              return next;
-                            });
-                          }}
-                        />
+                      {/* Columna izquierda: foto y documento de identidad centrados */}
+                      <div className="flex flex-col gap-4 items-center flex-shrink-0">
+                        {/* Foto del autor */}
+                        <div className="flex justify-center">
+                          <AuthorPhotoPicker
+                            index={index}
+                            authorName={watch(`authors.${index}.fullName`)}
+                            photo={authorPhotos[index]}
+                            onChange={(f) => {
+                              setAuthorPhotos(prev => {
+                                const next = [...prev];
+                                next[index] = f;
+                                return next;
+                              });
+                            }}
+                          />
+                        </div>
+
+                        {/* Documento de identidad */}
+                        <div className="flex justify-center">
+                          <AuthorIdDocPicker
+                            index={index}
+                            authorName={watch(`authors.${index}.fullName`)}
+                            idDoc={authorIdDocs[index]}
+                            onChange={(f) => {
+                              setAuthorIdDocs(prev => {
+                                const next = [...prev];
+                                next[index] = f;
+                                return next;
+                              });
+                            }}
+                          />
+                        </div>
                       </div>
 
                       {/* Campos del autor */}
@@ -503,21 +642,40 @@ export default function Submit() {
                           {errors.authors?.[index]?.fullName && <p className="form-error">{errors.authors[index]?.fullName?.message}</p>}
                         </div>
                         <div>
-                          <label className="form-label">Título Académico</label>
-                          <input className="form-input" {...register(`authors.${index}.academicTitle`)} placeholder="Dr., Mg., PhD." />
+                          <label className="form-label">Título Académico *</label>
+                          <select className="form-input" {...register(`authors.${index}.academicTitle`)}>
+                            <option value="">Seleccione...</option>
+                            <option value="Estudiante">Estudiante</option>
+                            <option value="Licenciado/a">Licenciado/a</option>
+                            <option value="Ingeniero/a">Ingeniero/a</option>
+                            <option value="Especialista">Especialista</option>
+                            <option value="Magíster / Mg.">Magíster / Mg.</option>
+                            <option value="Doctor/a / PhD.">Doctor/a / PhD.</option>
+                            <option value="Postdoctorado">Postdoctorado</option>
+                            <option value="Profesor/a">Profesor/a</option>
+                            <option value="Investigador/a">Investigador/a</option>
+                            <option value="Otro">Otro</option>
+                          </select>
+                          {errors.authors?.[index]?.academicTitle && <p className="form-error">{errors.authors[index]?.academicTitle?.message}</p>}
                         </div>
                         <div>
-                          <label className="form-label">Afiliación Institucional</label>
-                          <input className="form-input" {...register(`authors.${index}.affiliation`)} placeholder="Universidad / Institución" />
+                          <label className="form-label">Tipo de Correo *</label>
+                          <select className="form-input" {...register(`authors.${index}.emailType`)}>
+                            <option value="">Seleccione...</option>
+                            <option value="institutional">Institucional</option>
+                            <option value="personal">Personal</option>
+                          </select>
+                          {errors.authors?.[index]?.emailType && <p className="form-error">{errors.authors[index]?.emailType?.message}</p>}
                         </div>
                         <div>
-                          <label className="form-label">Email Institucional *</label>
-                          <input type="email" className="form-input" {...register(`authors.${index}.email`)} placeholder="autor@universidad.edu" />
+                          <label className="form-label">Email *</label>
+                          <input type="email" className="form-input" {...register(`authors.${index}.email`)} placeholder="correo@ejemplo.com" />
                           {errors.authors?.[index]?.email && <p className="form-error">{errors.authors[index]?.email?.message}</p>}
                         </div>
                         <div>
-                          <label className="form-label">ORCID</label>
-                          <input className="form-input" {...register(`authors.${index}.orcid`)} placeholder="0000-0000-0000-0000" />
+                          <label className="form-label">ORCID *</label>
+                          <input className="form-input" {...register(`authors.${index}.orcid`)} placeholder="https://orcid.org/0000-0000-0000-0000" />
+                          {errors.authors?.[index]?.orcid && <p className="form-error">{errors.authors[index]?.orcid?.message}</p>}
                         </div>
                         <div>
                           <label className="form-label">Teléfono</label>
@@ -535,6 +693,21 @@ export default function Submit() {
                         <div>
                           <label className="form-label">Ciudad</label>
                           <input className="form-input" {...register(`authors.${index}.city`)} placeholder="Ciudad" />
+                        </div>
+                        <div>
+                          <label className="form-label">Tipo de Documento *</label>
+                          <select className="form-input" {...register(`authors.${index}.identityDocType`)}>
+                            <option value="">Seleccione...</option>
+                            <option value="Cédula Nacional">Cédula Nacional</option>
+                            <option value="Cédula Internacional">Cédula Internacional</option>
+                            <option value="Pasaporte">Pasaporte</option>
+                          </select>
+                          {errors.authors?.[index]?.identityDocType && <p className="form-error">{errors.authors[index]?.identityDocType?.message}</p>}
+                        </div>
+                        <div>
+                          <label className="form-label">Número de Documento *</label>
+                          <input className="form-input" {...register(`authors.${index}.identityDocNumber`)} placeholder="Número de documento" />
+                          {errors.authors?.[index]?.identityDocNumber && <p className="form-error">{errors.authors[index]?.identityDocNumber?.message}</p>}
                         </div>
                       </div>
                     </div>
@@ -570,11 +743,11 @@ export default function Submit() {
                 ))}
 
                 <div>
-                  <label className="form-label">Adjuntar Documento (Word/PDF, máx. 10MB)</label>
+                  <label className="form-label">Adjuntar Documento (Word, máx. 15MB)</label>
                   <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-primary-400 transition-colors">
                     <Upload size={32} className="mx-auto text-gray-400 mb-3" />
                     <p className="text-gray-500 text-sm mb-3">Arrastre su archivo aquí o haga clic para seleccionar</p>
-                    <input type="file" accept=".doc,.docx,.pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} className="hidden" id="file-upload" />
+                    <input type="file" accept=".doc,.docx" onChange={(e) => setFile(e.target.files?.[0] || null)} className="hidden" id="file-upload" />
                     <label htmlFor="file-upload" className="btn-outline btn-sm cursor-pointer inline-block">
                       Seleccionar Archivo
                     </label>

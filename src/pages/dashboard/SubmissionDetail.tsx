@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
-  ArrowLeft, Mail, Send, Download, Upload, Trash2, Image, Loader2,
+  ArrowLeft, Mail, Download, Upload, Trash2, Image,
+  Loader2, FileText, ShieldCheck, Eye, RefreshCw,
 } from 'lucide-react';
 import { submissionsApi } from '../../api/submissions.api';
 import { usersApi } from '../../api/index';
@@ -11,15 +12,16 @@ import { useAuthStore } from '../../store/auth.store';
 import { STATUS_CONFIG, formatDate, getFileUrl } from '../../utils';
 import { SubmissionStatus } from '../../types';
 import CustomEmailModal from '../../components/ui/CustomEmailModal';
+import FileHistoryPanel from '../../components/ui/FileHistoryPanel';
 
 const TRANSITIONS: Record<SubmissionStatus, SubmissionStatus[]> = {
-  received: ['under_review', 'withdrawn'],
-  under_review: ['approved', 'rejected', 'revision_requested', 'withdrawn'],
+  received:           ['under_review', 'withdrawn'],
+  under_review:       ['approved', 'rejected', 'revision_requested', 'withdrawn'],
   revision_requested: ['under_review', 'rejected', 'withdrawn'],
-  approved: ['scheduled', 'rejected'],
-  rejected: ['under_review'],
-  withdrawn: [],
-  scheduled: ['approved'],
+  approved:           ['scheduled', 'rejected'],
+  rejected:           ['under_review'],
+  withdrawn:          [],
+  scheduled:          ['approved'],
 };
 
 export default function SubmissionDetail() {
@@ -28,14 +30,16 @@ export default function SubmissionDetail() {
   const { user } = useAuthStore();
   const qc = useQueryClient();
 
-  const [statusNotes, setStatusNotes] = useState('');
-  const [internalNotes, setInternalNotes] = useState('');
-  const [emailSubject, setEmailSubject] = useState('');
-  const [emailBody, setEmailBody] = useState('');
-  const [showEmailModal, setShowEmailModal] = useState(false);
-  const [notifyApplicant, setNotifyApplicant] = useState(true);
-  const [uploadingPhotoId, setUploadingPhotoId] = useState<string | null>(null);
-  const [downloadingFile, setDownloadingFile] = useState(false);
+  const [statusNotes,       setStatusNotes]       = useState('');
+  const [internalNotes,     setInternalNotes]      = useState('');
+  const [showEmailModal,    setShowEmailModal]     = useState(false);
+  const [notifyApplicant,   setNotifyApplicant]    = useState(true);
+  const [uploadingPhotoId,  setUploadingPhotoId]   = useState<string | null>(null);
+  const [downloadingFile,   setDownloadingFile]    = useState(false);
+  const [uploadingIdDocId,  setUploadingIdDocId]   = useState<string | null>(null);
+  const [downloadingIdDocId, setDownloadingIdDocId] = useState<string | null>(null);
+
+  const idDocInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const { data: sub, isLoading } = useQuery({
     queryKey: ['submission', id],
@@ -53,7 +57,7 @@ export default function SubmissionDetail() {
     mutationFn: (newStatus: SubmissionStatus) =>
       submissionsApi.changeStatus(id!, { newStatus, notes: statusNotes, internalNotes, notifyApplicant }),
     onSuccess: () => {
-      toast.success('Estado actualizado correctamente');
+      toast.success('Estado actualizado');
       qc.invalidateQueries({ queryKey: ['submission', id] });
       setStatusNotes('');
       setInternalNotes('');
@@ -61,21 +65,10 @@ export default function SubmissionDetail() {
     onError: (err: any) => toast.error(err.response?.data?.message || 'Error al cambiar estado'),
   });
 
-  const emailMutation = useMutation({
-    mutationFn: () => submissionsApi.sendEmail(id!, { subject: emailSubject, body: emailBody }),
-    onSuccess: () => {
-      toast.success('Correo enviado correctamente');
-      setShowEmailModal(false);
-      setEmailSubject('');
-      setEmailBody('');
-    },
-    onError: () => toast.error('Error al enviar correo'),
-  });
-
   const assignMutation = useMutation({
     mutationFn: (evaluatorId: string) => submissionsApi.assignEvaluator(id!, evaluatorId),
     onSuccess: () => toast.success('Evaluador asignado'),
-    onError: () => toast.error('Error al asignar evaluador'),
+    onError:   () => toast.error('Error al asignar evaluador'),
   });
 
   if (isLoading || !sub) {
@@ -86,17 +79,17 @@ export default function SubmissionDetail() {
     );
   }
 
-  const cfg = STATUS_CONFIG[sub.status];
-  const allowedNext = TRANSITIONS[sub.status] || [];
+  const cfg              = STATUS_CONFIG[sub.status];
+  const allowedNext      = TRANSITIONS[sub.status] || [];
   const correspondingAuthor = sub.authors.find((a) => a.isCorresponding) || sub.authors[0];
 
   return (
     <div className="space-y-5 max-w-5xl mx-auto">
-      {/* Header */}
+
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-start gap-3">
         <button onClick={() => navigate(-1)} className="btn-outline btn-sm flex items-center gap-1 mt-1">
-          <ArrowLeft size={16} />
-          Volver
+          <ArrowLeft size={16} /> Volver
         </button>
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-1">
@@ -109,36 +102,37 @@ export default function SubmissionDetail() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Main Content */}
+
+        {/* ── Columna principal ─────────────────────────────────────────────── */}
         <div className="lg:col-span-2 space-y-5">
-          {/* Abstract */}
+
+          {/* Resumen */}
           <div className="card">
             <h3 className="font-heading font-semibold text-gray-800 mb-3">Resumen</h3>
             <p className="text-gray-600 text-sm leading-relaxed">{sub.abstractEs}</p>
             {sub.keywordsEs && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {sub.keywordsEs.split(',').map((kw) => (
-                  <span key={kw} className="badge bg-primary-50 text-primary-700 text-xs">
-                    {kw.trim()}
-                  </span>
+                  <span key={kw} className="badge bg-primary-50 text-primary-700 text-xs">{kw.trim()}</span>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Authors */}
+          {/* Autores */}
           <div className="card">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-4">
               <h3 className="font-heading font-semibold text-gray-800">Autores</h3>
               <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
-                Fotos para agenda pública
+                Fotos para agenda · Docs. identidad
               </span>
             </div>
-            <div className="space-y-3">
+
+            <div className="space-y-4">
               {sub.authors.map((author, i) => (
                 <div key={author.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
 
-                  {/* Foto del autor con upload */}
+                  {/* Avatar + upload foto */}
                   <div className="relative flex-shrink-0">
                     {author.photoUrl ? (
                       <img
@@ -151,14 +145,10 @@ export default function SubmissionDetail() {
                         {i + 1}
                       </div>
                     )}
-
-                    {/* Botón subir foto */}
                     <label
                       htmlFor={`author-photo-${author.id}`}
-                      className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary-600 hover:bg-primary-700
-                        rounded-full flex items-center justify-center cursor-pointer shadow-md
-                        transition-colors"
-                      title="Subir foto del ponente"
+                      className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary-600 hover:bg-primary-700 rounded-full flex items-center justify-center cursor-pointer shadow-md transition-colors"
+                      title="Subir/cambiar foto"
                     >
                       {uploadingPhotoId === author.id
                         ? <span className="w-3 h-3 border-2 border-white rounded-full animate-spin border-t-transparent" />
@@ -178,30 +168,21 @@ export default function SubmissionDetail() {
                           await submissionsApi.uploadAuthorPhoto(author.id, file);
                           qc.invalidateQueries({ queryKey: ['submission', id] });
                           toast.success(`Foto de ${author.fullName} actualizada`);
-                        } catch {
-                          toast.error('Error al subir la foto');
-                        } finally {
-                          setUploadingPhotoId(null);
-                          e.target.value = '';
-                        }
+                        } catch { toast.error('Error al subir la foto'); }
+                        finally { setUploadingPhotoId(null); e.target.value = ''; }
                       }}
                     />
-
-                    {/* Botón eliminar foto (si existe) */}
                     {author.photoUrl && (
                       <button
                         onClick={async () => {
-                          if (!confirm('¿Eliminar foto del autor?')) return;
+                          if (!confirm('¿Eliminar foto?')) return;
                           try {
                             await submissionsApi.removeAuthorPhoto(author.id);
                             qc.invalidateQueries({ queryKey: ['submission', id] });
                             toast.success('Foto eliminada');
-                          } catch {
-                            toast.error('Error al eliminar foto');
-                          }
+                          } catch { toast.error('Error al eliminar foto'); }
                         }}
-                        className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 hover:bg-red-600
-                          rounded-full flex items-center justify-center shadow transition-colors"
+                        className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center shadow transition-colors"
                         title="Eliminar foto"
                       >
                         <Trash2 size={9} className="text-white" />
@@ -219,33 +200,126 @@ export default function SubmissionDetail() {
                       )}
                       {author.photoUrl && (
                         <span className="badge bg-green-100 text-green-700 text-xs flex items-center gap-1">
-                          <Image size={9} /> Foto lista
+                          <Image size={9} /> Foto
+                        </span>
+                      )}
+                      {author.identityDocUrl && (
+                        <span className="badge bg-blue-100 text-blue-700 text-xs flex items-center gap-1">
+                          <ShieldCheck size={9} /> ID
                         </span>
                       )}
                     </div>
+
                     <div className="text-xs text-gray-500 mt-1 space-y-0.5">
                       {author.academicTitle && <p>{author.academicTitle}</p>}
-                      {author.affiliation && <p>{author.affiliation}</p>}
+                      {author.affiliation   && <p>{author.affiliation}</p>}
                       <p>{author.email}</p>
                       {author.orcid && <p>ORCID: {author.orcid}</p>}
+                      {author.identityDocType && (
+                        <p className="text-blue-600">
+                          {author.identityDocType}{author.identityDocNumber ? `: ${author.identityDocNumber}` : ''}
+                        </p>
+                      )}
                     </div>
-                    {!author.photoUrl && (
-                      <p className="text-[10px] text-amber-500 mt-1.5 flex items-center gap-1">
-                        <Image size={9} /> Sin foto — requerida para la agenda pública
-                      </p>
-                    )}
+
+                    {/* Acciones doc. de identidad */}
+                    <div className="flex items-center gap-2 mt-2">
+                      {author.identityDocUrl ? (
+                        <>
+                          {/* Ver/descargar */}
+                          <button
+                            disabled={downloadingIdDocId === author.id}
+                            onClick={async () => {
+                              setDownloadingIdDocId(author.id);
+                              try {
+                                const { url } = await submissionsApi.getAuthorIdDocUrl(author.id);
+                                if (url) { window.open(url, '_blank'); }
+                                else     { toast.error('Sin documento de identidad'); }
+                              } catch { toast.error('Error al obtener el documento'); }
+                              finally   { setDownloadingIdDocId(null); }
+                            }}
+                            className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 font-medium bg-blue-50 hover:bg-blue-100 rounded-lg px-2 py-1 transition-colors"
+                          >
+                            {downloadingIdDocId === author.id
+                              ? <Loader2 size={10} className="animate-spin" />
+                              : <Eye size={10} />}
+                            Ver ID
+                          </button>
+
+                          {/* Reemplazar */}
+                          {user?.role === 'admin' && (
+                            <label
+                              htmlFor={`id-doc-${author.id}`}
+                              className="flex items-center gap-1 text-[11px] text-amber-600 hover:text-amber-800 font-medium bg-amber-50 hover:bg-amber-100 rounded-lg px-2 py-1 cursor-pointer transition-colors"
+                              title="Reemplazar documento de identidad"
+                            >
+                              {uploadingIdDocId === author.id
+                                ? <Loader2 size={10} className="animate-spin" />
+                                : <RefreshCw size={10} />}
+                              Reemplazar
+                            </label>
+                          )}
+                        </>
+                      ) : (
+                        user?.role === 'admin' && (
+                          <label
+                            htmlFor={`id-doc-${author.id}`}
+                            className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700 font-medium bg-gray-100 hover:bg-gray-200 rounded-lg px-2 py-1 cursor-pointer transition-colors"
+                          >
+                            {uploadingIdDocId === author.id
+                              ? <Loader2 size={10} className="animate-spin" />
+                              : <Upload size={10} />}
+                            Subir ID PDF
+                          </label>
+                        )
+                      )}
+
+                      {/* Input oculto para doc. identidad */}
+                      {user?.role === 'admin' && (
+                        <input
+                          id={`id-doc-${author.id}`}
+                          ref={(el) => { idDocInputRefs.current[author.id] = el; }}
+                          type="file"
+                          accept=".pdf,application/pdf"
+                          className="hidden"
+                          disabled={!!uploadingIdDocId}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setUploadingIdDocId(author.id);
+                            try {
+                              await submissionsApi.replaceAuthorIdDoc(author.id, file);
+                              qc.invalidateQueries({ queryKey: ['submission', id] });
+                              toast.success(`Documento de ${author.fullName} actualizado`);
+                            } catch (err: any) {
+                              toast.error(err?.response?.data?.message || 'Error al subir el documento');
+                            } finally {
+                              setUploadingIdDocId(null);
+                              e.target.value = '';
+                            }
+                          }}
+                        />
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Content Sections */}
+          {/* Historial de versiones del documento */}
+          <FileHistoryPanel
+            submissionId={sub.id}
+            files={sub.files ?? []}
+            currentFileName={sub.fileName}
+          />
+
+          {/* Secciones de contenido */}
           {[
             { label: 'Introducción', value: sub.introduction },
-            { label: 'Metodología', value: sub.methodology },
-            { label: 'Resultados', value: sub.results },
-            { label: 'Discusión', value: sub.discussion },
+            { label: 'Metodología',  value: sub.methodology },
+            { label: 'Resultados',   value: sub.results },
+            { label: 'Discusión',    value: sub.discussion },
             { label: 'Conclusiones', value: sub.conclusions },
             { label: 'Bibliografía', value: sub.bibliography },
           ].filter((s) => s.value).map((section) => (
@@ -255,7 +329,7 @@ export default function SubmissionDetail() {
             </div>
           ))}
 
-          {/* Status History */}
+          {/* Historial de estado */}
           <div className="card">
             <h3 className="font-heading font-semibold text-gray-800 mb-3">Historial de Estado</h3>
             <div className="space-y-3">
@@ -283,19 +357,20 @@ export default function SubmissionDetail() {
           </div>
         </div>
 
-        {/* Sidebar */}
+        {/* ── Sidebar ──────────────────────────────────────────────────────── */}
         <div className="space-y-5">
-          {/* Details */}
+
+          {/* Detalles */}
           <div className="card">
             <h3 className="font-heading font-semibold text-gray-800 mb-3">Detalles</h3>
             <dl className="space-y-2 text-sm">
               {[
                 { label: 'Eje Temático', value: sub.thematicAxis?.name },
-                { label: 'Tipo', value: sub.productType?.name },
-                { label: 'País', value: sub.country ? `${sub.country.flagEmoji} ${sub.country.name}` : '—' },
-                { label: 'Páginas', value: sub.pageCount ? `${sub.pageCount}` : '—' },
-                { label: 'Usa IA', value: sub.usesAi ? 'Sí' : 'No' },
-                { label: 'Enviado', value: formatDate(sub.createdAt) },
+                { label: 'Tipo',         value: sub.productType?.name },
+                { label: 'País',         value: sub.country ? `${sub.country.flagEmoji} ${sub.country.name}` : '—' },
+                { label: 'Páginas',      value: sub.pageCount ? `${sub.pageCount}` : '—' },
+                { label: 'Usa IA',       value: sub.usesAi ? 'Sí' : 'No' },
+                { label: 'Enviado',      value: formatDate(sub.createdAt) },
               ].map(({ label, value }) => (
                 <div key={label} className="flex justify-between gap-2">
                   <dt className="text-gray-500">{label}</dt>
@@ -303,24 +378,22 @@ export default function SubmissionDetail() {
                 </div>
               ))}
             </dl>
+
+            {/* Descarga del documento oficial */}
             {sub.fileUrl && (
               <button
                 onClick={async () => {
                   setDownloadingFile(true);
                   try {
                     const { url, fileName } = await submissionsApi.getDownloadUrl(sub.id);
-                    // Abrir la presigned URL de B2 en una nueva pestaña
                     const a = document.createElement('a');
                     a.href = url;
                     a.target = '_blank';
                     a.rel = 'noopener noreferrer';
                     a.download = fileName || 'manuscrito';
                     a.click();
-                  } catch {
-                    toast.error('No se pudo obtener el enlace de descarga');
-                  } finally {
-                    setDownloadingFile(false);
-                  }
+                  } catch { toast.error('No se pudo obtener el enlace de descarga'); }
+                  finally   { setDownloadingFile(false); }
                 }}
                 disabled={downloadingFile}
                 className="btn-outline btn-sm flex items-center gap-1 mt-4 w-full justify-center"
@@ -328,12 +401,24 @@ export default function SubmissionDetail() {
                 {downloadingFile
                   ? <Loader2 size={14} className="animate-spin" />
                   : <Download size={14} />}
-                {downloadingFile ? 'Generando enlace...' : `Descargar Manuscrito (${sub.fileName || 'documento'})`}
+                <span className="truncate max-w-[160px]" title={sub.fileName}>
+                  {downloadingFile ? 'Generando enlace...' : `Descargar Oficial (${sub.fileName || 'doc'})`}
+                </span>
               </button>
+            )}
+
+            {/* Resumen de versiones */}
+            {sub.files && sub.files.length > 0 && (
+              <div className="mt-3 flex items-center gap-2 text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
+                <FileText size={12} className="text-primary-400" />
+                <span>
+                  {sub.files.length} versión{sub.files.length !== 1 ? 'es' : ''} · oficial: v{sub.files.find(f => f.isActive)?.version ?? '—'}
+                </span>
+              </div>
             )}
           </div>
 
-          {/* Change Status */}
+          {/* Cambiar estado */}
           {allowedNext.length > 0 && (
             <div className="card">
               <h3 className="font-heading font-semibold text-gray-800 mb-3">Cambiar Estado</h3>
@@ -378,7 +463,7 @@ export default function SubmissionDetail() {
             </div>
           )}
 
-          {/* Assign Evaluator */}
+          {/* Asignar evaluador */}
           {user?.role === 'admin' && users && (
             <div className="card">
               <h3 className="font-heading font-semibold text-gray-800 mb-3">Asignar Evaluador</h3>
@@ -389,43 +474,44 @@ export default function SubmissionDetail() {
               >
                 <option value="">Sin asignar</option>
                 {users.filter((u) => u.role === 'evaluator').map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.firstName} {u.lastName}
-                  </option>
+                  <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
                 ))}
               </select>
             </div>
           )}
 
-          {/* Custom Email */}
+          {/* Correo personalizado */}
           {user?.role === 'admin' && (
             <div className="card">
               <h3 className="font-heading font-semibold text-gray-800 mb-3">Correo Personalizado</h3>
               <p className="text-xs text-gray-500 mb-3">
-                Enviar a: {correspondingAuthor?.email}
+                Para: {correspondingAuthor?.email}
               </p>
               <button
                 onClick={() => setShowEmailModal(true)}
                 className="btn-outline btn-sm flex items-center gap-2 w-full justify-center"
               >
-                <Mail size={14} />
-                Redactar Correo
+                <Mail size={14} /> Redactar correo
               </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* Email Modal — editor WYSIWYG */}
+      {/* Modal de correo */}
       {showEmailModal && correspondingAuthor && (
         <CustomEmailModal
           toName={correspondingAuthor.fullName}
           toEmail={correspondingAuthor.email}
           title="Correo Personalizado"
           onClose={() => setShowEmailModal(false)}
-          onSend={async (subject, body) => {
-            await submissionsApi.sendEmail(id!, { subject, body });
-            toast.success('Correo enviado correctamente');
+          onSend={async (subject, body, attachment) => {
+            if (attachment) {
+              await submissionsApi.sendEmailWithAttachment(id!, subject, body, attachment);
+            } else {
+              await submissionsApi.sendEmail(id!, { subject, body });
+            }
+            toast.success('Correo enviado' + (attachment ? ' con adjunto' : ''));
           }}
         />
       )}

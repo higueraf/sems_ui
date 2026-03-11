@@ -71,26 +71,12 @@ export interface ThematicAxis {
 }
 
 export type OrganizerRole =
-  | 'host'
-  | 'co_organizer'
-  | 'sponsor'
-  | 'scientific_committee'
-  | 'organizing_committee'
-  | 'keynote_speaker'
-  | 'contact';
+  | 'host' | 'co_organizer' | 'sponsor' | 'scientific_committee'
+  | 'organizing_committee' | 'keynote_speaker' | 'contact';
 
 export type MemberRole =
-  | 'rector'
-  | 'vice_rector'
-  | 'dean'
-  | 'director'
-  | 'researcher'
-  | 'coordinator'
-  | 'speaker'
-  | 'panelist'
-  | 'committee'
-  | 'contact'
-  | 'other';
+  | 'rector' | 'vice_rector' | 'dean' | 'director' | 'researcher'
+  | 'coordinator' | 'speaker' | 'panelist' | 'committee' | 'contact' | 'other';
 
 export interface OrganizerMember {
   id: string;
@@ -113,7 +99,6 @@ export interface OrganizerMember {
 export interface Organizer {
   id: string;
   eventId: string;
-  /** 'institution' = universidad/org · 'person' = persona responsable */
   type: 'institution' | 'person';
   name: string;
   shortName?: string;
@@ -144,11 +129,8 @@ export interface Guideline {
   iconName?: string;
   displayOrder: number;
   isVisible: boolean;
-  /** URL relativa del archivo adjunto (PDF, PPTX, DOCX) */
   fileUrl?: string | null;
-  /** Nombre original del archivo adjunto */
   fileName?: string | null;
-  /** Tipo MIME del archivo */
   fileMimeType?: string | null;
 }
 
@@ -166,13 +148,26 @@ export interface ScientificProductType {
 }
 
 export type SubmissionStatus =
-  | 'received'
-  | 'under_review'
-  | 'revision_requested'
-  | 'approved'
-  | 'rejected'
-  | 'withdrawn'
-  | 'scheduled';
+  | 'received' | 'under_review' | 'revision_requested'
+  | 'approved' | 'rejected' | 'withdrawn' | 'scheduled';
+
+export type SubmissionFileType = 'manuscript' | 'correction' | 'final';
+
+/** Versión de documento en el historial de archivos */
+export interface SubmissionFile {
+  id: string;
+  submissionId: string;
+  fileUrl: string;
+  fileName: string;
+  fileSize?: number;
+  fileType: SubmissionFileType;
+  version: number;
+  notes?: string;
+  isActive: boolean;
+  uploadedBy?: User;
+  uploadedById?: string;
+  createdAt: string;
+}
 
 export interface SubmissionAuthor {
   id: string;
@@ -188,8 +183,12 @@ export interface SubmissionAuthor {
   city?: string;
   isCorresponding: boolean;
   authorOrder: number;
-  /** Foto del ponente, subida por admin/evaluador tras aprobación */
   photoUrl?: string;
+  // Documento de identidad
+  identityDocType?: string;
+  identityDocNumber?: string;
+  identityDocUrl?: string;
+  identityDocFileName?: string;
 }
 
 export interface SubmissionStatusHistory {
@@ -233,6 +232,8 @@ export interface Submission {
   pageCount?: number;
   authors: SubmissionAuthor[];
   statusHistory?: SubmissionStatusHistory[];
+  /** Historial de versiones del documento */
+  files?: SubmissionFile[];
   createdAt: string;
   updatedAt: string;
 }
