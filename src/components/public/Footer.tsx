@@ -79,47 +79,97 @@ export default function Footer() {
                   {institutions.map((org) => (
                     <div
                       key={org.id + '-' + pass}
-                      title={org.name}
-                      className={`inline-flex flex-col items-center gap-1.5 mx-5 cursor-default select-none
+                      title={`Visitar sitio web de ${org.name}`}
+                      className={`inline-flex flex-col items-center gap-1.5 mx-5 select-none
                         transition-all duration-300 group flex-shrink-0 ${
                         isDark ? 'opacity-40 hover:opacity-90' : 'opacity-65 hover:opacity-100'
                       }`}
                     >
-                      {/* Caja del logo — 128×68 px fija */}
-                      <div className="w-32 h-[68px] flex items-center justify-center
-                        group-hover:scale-110 transition-transform duration-300">
-                        {org.logoUrl ? (
-                          <img
-                            src={getFileUrl(org.logoUrl)}
-                            alt={org.shortName || org.name}
-                            className="max-w-full max-h-full object-contain"
-                            onError={(e) => {
-                              const target = e.currentTarget;
-                              target.style.display = 'none';
-                              const ph = target.nextElementSibling as HTMLElement;
-                              if (ph) ph.style.display = 'flex';
-                            }}
-                          />
-                        ) : null}
-                        {/* Placeholder sin logo */}
-                        <div
-                          className={`w-14 h-14 rounded-2xl items-center justify-center
-                            text-white shadow-md ${
-                            org.logoUrl ? 'hidden' : 'flex'
-                          }`}
-                          style={{ backgroundColor: getFallbackColor(org.shortName) }}
+                      {/* Link wrapper */}
+                      {org.website ? (
+                        <a
+                          href={org.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block w-full"
+                          title={`Visitar sitio web de ${org.name}`}
                         >
-                          <Building2 size={22} className="opacity-80" />
-                        </div>
-                      </div>
+                          {/* Caja del logo — 128×68 px fija */}
+                          <div className="w-32 h-[68px] flex items-center justify-center
+                            group-hover:scale-110 transition-transform duration-300">
+                            {org.logoUrl ? (
+                              <img
+                                src={getFileUrl(org.logoUrl)}
+                                alt={org.shortName || org.name}
+                                className="max-w-full max-h-full object-contain"
+                                onError={(e) => {
+                                  const target = e.currentTarget;
+                                  target.style.display = 'none';
+                                  const ph = target.nextElementSibling as HTMLElement;
+                                  if (ph) ph.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            {/* Placeholder sin logo */}
+                            <div
+                              className={`w-14 h-14 rounded-2xl items-center justify-center
+                                text-white shadow-md ${
+                                org.logoUrl ? 'hidden' : 'flex'
+                              }`}
+                              style={{ backgroundColor: getFallbackColor(org.shortName) }}
+                            >
+                              <Building2 size={22} className="opacity-80" />
+                            </div>
+                          </div>
 
-                      {/* Sigla */}
-                      <span className={`text-[9px] font-bold leading-tight text-center ${
-                        isDark ? 'text-gray-500' : 'text-gray-400'
-                      }`}>
-                        {org.shortName
-                          || org.name.split(' ').filter((w: string) => w.length > 2).map((w: string) => w[0]).join('').slice(0, 6)}
-                      </span>
+                          {/* Sigla */}
+                          <span className={`text-[9px] font-bold leading-tight text-center ${
+                            isDark ? 'text-gray-500' : 'text-gray-400'
+                          }`}>
+                            {org.shortName
+                              || org.name.split(' ').filter((w: string) => w.length > 2).map((w: string) => w[0]).join('').slice(0, 6)}
+                          </span>
+                        </a>
+                      ) : (
+                        /* Sin website - mostrar sin link */
+                        <>
+                          {/* Caja del logo — 128×68 px fija */}
+                          <div className="w-32 h-[68px] flex items-center justify-center
+                            group-hover:scale-110 transition-transform duration-300 cursor-default">
+                            {org.logoUrl ? (
+                              <img
+                                src={getFileUrl(org.logoUrl)}
+                                alt={org.shortName || org.name}
+                                className="max-w-full max-h-full object-contain"
+                                onError={(e) => {
+                                  const target = e.currentTarget;
+                                  target.style.display = 'none';
+                                  const ph = target.nextElementSibling as HTMLElement;
+                                  if (ph) ph.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            {/* Placeholder sin logo */}
+                            <div
+                              className={`w-14 h-14 rounded-2xl items-center justify-center
+                                text-white shadow-md ${
+                                org.logoUrl ? 'hidden' : 'flex'
+                              }`}
+                              style={{ backgroundColor: getFallbackColor(org.shortName) }}
+                            >
+                              <Building2 size={22} className="opacity-80" />
+                            </div>
+                          </div>
+
+                          {/* Sigla */}
+                          <span className={`text-[9px] font-bold leading-tight text-center ${
+                            isDark ? 'text-gray-500' : 'text-gray-400'
+                          }`}>
+                            {org.shortName
+                              || org.name.split(' ').filter((w: string) => w.length > 2).map((w: string) => w[0]).join('').slice(0, 6)}
+                          </span>
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>
