@@ -91,7 +91,7 @@ export default function Footer() {
                           href={org.website}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="block w-full"
+                          className="inline-flex flex-col items-center gap-1.5 w-full"
                           title={`Visitar sitio web de ${org.name}`}
                         >
                           {/* Caja del logo — 128×68 px fija */}
