@@ -20,15 +20,16 @@
     font-weight: 500 !important;
   }
   
-  /* Enlaces más visibles */
+  /* Enlaces sin subrayado en móviles */
   a {
     color: #006f33 !important;
     font-weight: 600 !important;
-    text-decoration: underline !important;
+    text-decoration: none !important;
   }
   
   a:hover {
     color: #005c2a !important;
+    text-decoration: none !important;
   }
   
   /* Botones con mejor visibilidad */
