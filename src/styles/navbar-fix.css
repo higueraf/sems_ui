@@ -1,0 +1,81 @@
+/* Fix para problemas de visibilidad del Navbar y encabezado */
+
+/* Asegurar que los colores primarios sean visibles */
+.bg-primary-900 {
+  background-color: #003918 !important; /* Verde oscuro */
+}
+
+.bg-primary-700 {
+  background-color: #005c2a !important; /* Verde medio */
+}
+
+.bg-primary-600 {
+  background-color: #006f33 !important; /* Verde más claro */
+}
+
+/* Asegurar que el texto blanco sea visible */
+.text-white {
+  color: #ffffff !important;
+}
+
+.text-primary-200 {
+  color: #96d3b0 !important; /* Verde claro para contraste */
+}
+
+/* Asegurar que los enlaces tengan hover visible */
+.hover\:text-white:hover {
+  color: #ffffff !important;
+}
+
+.hover\:bg-primary-600\/20:hover {
+  background-color: rgba(0, 111, 51, 0.2) !important;
+}
+
+.hover\:bg-primary-500:hover {
+  background-color: #007F3A !important;
+}
+
+/* Fix para barra institucional */
+.hidden.md\:block {
+  display: block !important;
+}
+
+@media (min-width: 768px) {
+  .hidden.md\:block {
+    display: block !important;
+  }
+}
+
+/* Asegurar que el navbar sea sticky y visible */
+.sticky {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 50 !important;
+}
+
+/* Fix para responsive */
+@media (max-width: 767px) {
+  .md\:hidden {
+    display: none !important;
+  }
+  
+  .md\:block {
+    display: block !important;
+  }
+}
+
+/* Asegurar visibilidad de botones */
+.bg-primary-600 {
+  background-color: #006f33 !important;
+}
+
+.text-primary-200 {
+  color: #96d3b0 !important;
+}
+
+/* Fix para transiciones */
+.transition-colors {
+  transition-property: color, background-color, border-color !important;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition-duration: 150ms !important;
+}

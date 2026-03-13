@@ -3,6 +3,7 @@ import { useAuthStore } from './store/auth.store';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { useKeepAlive } from './hooks/useKeepAlive';
 import { useAuthInit } from './hooks/useAuthInit';
+import './styles/navbar-fix.css';
 
 // Public pages
 import PublicLayout from './components/public/PublicLayout';
