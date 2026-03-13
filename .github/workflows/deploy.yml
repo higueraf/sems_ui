@@ -46,11 +46,11 @@ jobs:
           script: |
             set -e
 
-            mkdir -p /var/www/react-app
-            rm -rf /var/www/react-app/*
-            cp -r /tmp/react_build/dist/* /var/www/react-app/
+            mkdir -p /var/www/sems-ui
+            rm -rf /var/www/sems-ui/*
+            cp -r /tmp/react_build/dist/* /var/www/sems-ui/
 
-            chown -R www-data:www-data /var/www/react-app
+            chown -R www-data:www-data /var/www/sems-ui
 
             nginx -t
             systemctl reload nginx
