@@ -6,9 +6,11 @@ import { submissionsApi } from '../../api/submissions.api';
 import { Submission } from '../../types';
 import { STATUS_CONFIG, formatDate } from '../../utils';
 import { useTheme } from '../../hooks/useTheme';
+import { useScrollToTop } from '../../hooks/useScrollToTop';
 
 export default function CheckStatus() {
   const { isDark } = useTheme();
+  useScrollToTop(); // Scroll automático al principio de la página
   const [results, setResults] = useState<Submission[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { register, handleSubmit } = useForm<{ email: string }>();

@@ -7,6 +7,7 @@ import {
 import { eventsApi } from '../../api/events.api';
 import { guidelinesApi } from '../../api/index';
 import { useTheme } from '../../hooks/useTheme';
+import { useScrollToTop } from '../../hooks/useScrollToTop';
 import { Guideline } from '../../types';
 import toast from 'react-hot-toast';
 
@@ -67,6 +68,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 
 export default function Guidelines() {
   const { isDark } = useTheme();
+  useScrollToTop(); // Scroll automático al principio de la página
   const bg      = isDark ? 'bg-gray-950' : 'bg-white';
   const bgAlt   = isDark ? 'bg-gray-900' : 'bg-[#F5EDD8]';
   const text    = isDark ? 'text-gray-100' : 'text-gray-900';

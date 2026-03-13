@@ -77,7 +77,7 @@
   }
 
   .sidebar-link-inactive {
-    @apply text-gray-300 hover:bg-white/10 hover:text-white;
+    @apply text-gray-400 hover:bg-white/10 hover:text-white font-medium;
   }
 
   .table-th {

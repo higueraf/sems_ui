@@ -8,6 +8,7 @@ import { agendaApi } from '../../api/agenda.api';
 import { AgendaSlot } from '../../types';
 import { formatTime, SLOT_TYPE_LABELS } from '../../utils';
 import { useTheme } from '../../hooks/useTheme';
+import { useScrollToTop } from '../../hooks/useScrollToTop';
 
 const SLOT_COLORS: Record<string, string> = {
   keynote: 'border-l-accent-500 bg-accent-50',
@@ -98,6 +99,7 @@ function SlotCard({ slot, isDark }: { slot: AgendaSlot; isDark: boolean }) {
 
 export default function AgendaPublic() {
   const { isDark } = useTheme();
+  useScrollToTop(); // Scroll automático al principio de la página
   const bg      = isDark ? 'bg-gray-950' : 'bg-white';
   const bgAlt   = isDark ? 'bg-gray-900' : 'bg-[#F5EDD8]';
   const text    = isDark ? 'text-gray-100' : 'text-gray-900';

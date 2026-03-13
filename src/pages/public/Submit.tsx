@@ -8,6 +8,7 @@ import { Plus, Trash2, Upload, CheckCircle, User, FileText, Camera, X } from 'lu
 import { eventsApi } from '../../api/events.api';
 import { submissionsApi } from '../../api/submissions.api';
 import { countriesApi, productTypesApi, thematicAxesApi } from '../../api/index';
+import { useScrollToTop } from '../../hooks/useScrollToTop';
 
 const authorSchema = z.object({
   fullName: z.string().min(2, 'Nombre requerido'),
@@ -240,6 +241,7 @@ function AuthorIdDocPicker({ index, authorName, idDoc, onChange }: AuthorIdDocPi
 // ── Componente principal ─────────────────────────────────────────────────────
 
 export default function Submit() {
+  useScrollToTop(); // Scroll automático al principio de la página
   const [step, setStep]           = useState<Step>('info');
   const [file, setFile]           = useState<File | null>(null);
   const [authorPhotos, setAuthorPhotos] = useState<(File | null)[]>([null, null, null, null]);

@@ -6,6 +6,7 @@ import { organizersApi } from '../../api/index';
 import { Organizer, OrganizerMember } from '../../types';
 import { ORGANIZER_ROLE_LABELS, getFileUrl } from '../../utils';
 import { useTheme } from '../../hooks/useTheme';
+import { useScrollToTop } from '../../hooks/useScrollToTop';
 
 // ─── Etiquetas de rol de miembro ─────────────────────────────────────────────
 const MEMBER_ROLE_LABELS: Record<string, string> = {
@@ -210,6 +211,7 @@ function PersonCard({
 // ─── Página principal ─────────────────────────────────────────────────────────
 export default function OrganizersPage() {
   const { isDark } = useTheme();
+  useScrollToTop(); // Scroll automático al principio de la página
 
   const { data: event } = useQuery({ queryKey: ['event-active'], queryFn: eventsApi.getActive });
   const { data: organizers, isLoading } = useQuery({
