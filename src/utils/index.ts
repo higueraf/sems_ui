@@ -48,18 +48,34 @@ export const cn = (...classes: (string | undefined | null | false)[]) =>
   classes.filter(Boolean).join(' ');
 
 /**
- * Resuelve una URL de imagen almacenada en Cloudinary.
+ * Resuelve una URL de imagen almacenada.
  * - URLs de Cloudinary (https://res.cloudinary.com/...): se devuelven tal cual.
- * - Rutas legadas /uploads/...: se convierten al origen del API (solo dev).
  * - Referencias B2 (b2://...): NO son URLs públicas — usar storage.getSignedUrl() en el backend.
+ * - Referencias locales (local://...): se convierten a URLs del API local-files
+ * - Rutas legadas /uploads/...: se convierten al origen del API
  */
 const API_ORIGIN = ((import.meta as any).env?.VITE_API_URL || 'http://localhost:3000/api').replace(/\/api$/, '');
 export const getFileUrl = (path?: string | null): string => {
   if (!path) return '';
+  
   // URL absoluta (Cloudinary CDN u otra): devolver directamente
   if (path.startsWith('http')) return path;
+  
   // Referencia interna B2 — no es una URL pública, no se puede mostrar directamente
   if (path.startsWith('b2://')) return '';
-  // Ruta legada /uploads/... (solo desarrollo local)
+  
+  // Referencia local (local://folder/file): convertir a API endpoint
+  if (path.startsWith('local://')) {
+    const relativePath = path.replace('local://', '');
+    const [folder] = relativePath.split('/');
+    
+    // Carpetas públicas son accesibles sin autenticación
+    const publicFolders = ['logos', 'photos', 'guidelines'];
+    const visibility = publicFolders.includes(folder) ? 'public' : 'private';
+    
+    return `${API_ORIGIN}/api/local-files/${visibility}/${relativePath}`;
+  }
+  
+  // Ruta legada /uploads/... (compatibilidad)
   return `${API_ORIGIN}${path}`;
 };
