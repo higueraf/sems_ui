@@ -20,13 +20,12 @@ jobs:
 
       - name: Create env for build
         run: |
-          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" > .env.production
-          echo "VITE_APP_NAME=${{ secrets.VITE_APP_NAME }}" >> .env.production
+          printf "%s" "${{ secrets.REACT_ENV }}" > .env.production
 
-      - name: Install dependencies
+      - name: Install deps
         run: npm ci
 
-      - name: Build frontend
+      - name: Build
         run: npm run build
 
       - name: Upload build to VPS
@@ -38,7 +37,7 @@ jobs:
           source: "dist/*"
           target: "/tmp/react_build"
 
-      - name: Deploy and activate on VPS
+      - name: Activate build on VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -47,112 +46,11 @@ jobs:
           script: |
             set -e
 
-            echo "🚀 Starting frontend deployment..."
+            mkdir -p /var/www/react-app
+            rm -rf /var/www/react-app/*
+            cp -r /tmp/react_build/dist/* /var/www/react-app/
 
-            # Crear directorios necesarios
-            mkdir -p /var/www/sems_frontend
-            mkdir -p /var/www/backups/sems_frontend
+            chown -R www-data:www-data /var/www/react-app
 
-            # Backup del build anterior (si existe)
-            if [ -d "/var/www/sems_frontend" ] && [ "$(ls -A /var/www/sems_frontend)" ]; then
-              BACKUP_NAME="sems_frontend_backup_$(date +%Y%m%d_%H%M%S)"
-              echo "📦 Creating backup: $BACKUP_NAME"
-              cp -r /var/www/sems_frontend /var/www/backups/sems_frontend/$BACKUP_NAME
-              
-              # Mantener solo los últimos 5 backups
-              cd /var/www/backups/sems_frontend
-              ls -t | tail -n +6 | xargs -r rm -rf
-            fi
-
-            # Limpiar directorio anterior
-            echo "🧹 Cleaning previous build..."
-            rm -rf /var/www/sems_frontend/*
-
-            # Copiar nuevo build
-            echo "📋 Copying new build..."
-            cp -r /tmp/react_build/* /var/www/sems_frontend/
-
-            # Verificar archivos críticos
-            if [ ! -f "/var/www/sems_frontend/index.html" ]; then
-              echo "❌ ERROR: index.html not found after deployment"
-              exit 1
-            fi
-
-            # Establecer permisos correctos
-            echo "🔐 Setting permissions..."
-            chown -R www-data:www-data /var/www/sems_frontend
-            chmod -R 755 /var/www/sems_frontend
-
-            # Configurar Nginx si no existe
-            if [ ! -f "/etc/nginx/sites-available/sems_frontend" ]; then
-              echo "⚙️ Setting up Nginx configuration..."
-              cat > /etc/nginx/sites-available/sems_frontend << 'EOF'
-server {
-    listen 80;
-    server_name _;
-    
-    root /var/www/sems_frontend;
-    index index.html;
-
-    # Logging
-    access_log /var/log/nginx/sems_frontend.access.log;
-    error_log /var/log/nginx/sems_frontend.error.log;
-
-    # Security Headers
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header X-Content-Type-Options "nosniff" always;
-
-    # Gzip Compression
-    gzip on;
-    gzip_vary on;
-    gzip_min_length 1024;
-    gzip_types text/plain text/css text/xml text/javascript application/javascript application/json;
-
-    # React Router - Fallback to index.html
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Static Assets Caching
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-        access_log off;
-    }
-
-    # Health Check
-    location /health {
-        access_log off;
-        return 200 "healthy\n";
-        add_header Content-Type text/plain;
-    }
-}
-EOF
-
-              # Activar sitio
-              ln -sf /etc/nginx/sites-available/sems_frontend /etc/nginx/sites-enabled/
-              
-              # Remover default site si existe
-              rm -f /etc/nginx/sites-enabled/default
-            fi
-
-            # Verificar configuración de Nginx
-            echo "🔍 Testing Nginx configuration..."
             nginx -t
-
-            # Recargar Nginx
-            echo "🔄 Reloading Nginx..."
             systemctl reload nginx
-
-            # Limpiar archivos temporales
-            rm -rf /tmp/react_build
-
-            # Verificar que el servicio esté corriendo
-            if ! systemctl is-active --quiet nginx; then
-              echo "❌ ERROR: Nginx is not running"
-              exit 1
-            fi
-
-            echo "✅ Frontend deployed successfully!"
-            echo "🌐 Site available at: http://${{ secrets.VPS_HOST || 'your-domain.com' }}"
