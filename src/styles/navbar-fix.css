@@ -106,3 +106,51 @@ a, button {
 .transition-colors {
   transition: color 0.2s ease, background-color 0.2s ease !important;
 }
+
+/* Fix específico para botón Postular Trabajo */
+.font-bold.text-sm.px-5.py-2\.5.rounded-lg.transition-all.shadow-md.bg-primary-700.hover\:bg-primary-600.text-white {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* Botón postular en desktop */
+.hidden.md\:flex .bg-primary-700.text-white {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* Botón postular en móvil */
+.md\:hidden .bg-primary-600.text-white {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* Sidebar fixes */
+.sidebar-link {
+  color: #d1d5db !important;
+  font-weight: 600 !important;
+}
+
+.sidebar-link:hover {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.sidebar-link-active {
+  background-color: #007F3A !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* Texto en sidebar */
+.bg-gray-900 .text-white {
+  color: #ffffff !important;
+}
+
+.bg-gray-900 .text-gray-400 {
+  color: #d1d5db !important;
+}
+
+.bg-gray-900 .text-gray-300 {
+  color: #d1d5db !important;
+}

@@ -69,3 +69,53 @@
     color: inherit !important;
   }
 }
+
+/* Fix específico para dashboard (todos los dispositivos) */
+.sidebar-link-inactive {
+  color: #d1d5db !important;
+  font-weight: 600 !important;
+}
+
+.sidebar-link-inactive:hover {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Fix para botón postular en navbar */
+.bg-primary-700.text-white {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+.bg-primary-700.text-white:hover {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* Fix para cualquier botón con clases primarias */
+button[class*="bg-primary-"][class*="text-white"] {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* Asegurar texto visible en sidebar */
+.bg-gray-900 .text-gray-400 {
+  color: #d1d5db !important;
+}
+
+.bg-gray-900 .text-gray-300 {
+  color: #d1d5db !important;
+}
+
+.bg-gray-900 .text-white {
+  color: #ffffff !important;
+}
+
+/* Fix para texto de usuario en sidebar */
+.bg-gray-900 .text-sm {
+  color: #ffffff !important;
+}
+
+.bg-gray-900 .text-xs {
+  color: #d1d5db !important;
+}
