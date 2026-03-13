@@ -34,7 +34,7 @@ export default function Navbar() {
             <div className="w-10 h-10 rounded-xl bg-primary-600 flex items-center justify-center border border-primary-700 shadow-lg">
               <span className="font-heading font-black text-white text-lg">CA</span>
             </div>
-            <div className="hidden sm:block">
+            <div>
               <div className="font-heading font-black text-white text-sm leading-tight">
                 SIMPOSIO INTERNACIONAL
               </div>
@@ -78,7 +78,7 @@ export default function Navbar() {
           <div className="md:hidden flex items-center gap-2">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="p-2 rounded-lg transition-colors text-gray-600 hover:bg-gray-100"
+              className="p-2 rounded-lg transition-colors text-white hover:bg-primary-600/40"
             >
               {isOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
