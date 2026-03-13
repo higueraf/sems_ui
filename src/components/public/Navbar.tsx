@@ -78,9 +78,13 @@ export default function Navbar() {
           <div className="md:hidden flex items-center gap-2">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="p-2 rounded-lg transition-colors text-white hover:bg-primary-600/40"
+              className="p-2 rounded-lg transition-colors hover:bg-white/20"
+              style={{ color: '#ffffff' }}
             >
-              {isOpen ? <X size={22} /> : <Menu size={22} />}
+              {isOpen
+                ? <X size={26} strokeWidth={2.5} style={{ color: '#ffffff' }} />
+                : <Menu size={26} strokeWidth={2.5} style={{ color: '#ffffff' }} />
+              }
             </button>
           </div>
         </div>
