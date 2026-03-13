@@ -12,10 +12,97 @@
   background-color: #006f33 !important;
 }
 
+/* Verde más claro para hover y mejor contraste */
+.hover\:bg-primary-500:hover,
+.hover\:bg-primary-600\/50:hover {
+  background-color: #007F3A !important;
+}
+
+/* Texto con mejor contraste */
 .text-primary-200 {
   color: #96d3b0 !important;
 }
 
-.hover\:bg-primary-500:hover {
+.text-white {
+  color: #ffffff !important;
+}
+
+/* Fix específico para móviles */
+@media (max-width: 768px) {
+  /* Barra institucional en móviles */
+  .hidden.md\:block {
+    display: none !important;
+  }
+  
+  /* Navbar más visible en móviles */
+  .sticky.top-0 {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 50 !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Texto del navbar con máximo contraste */
+  .bg-primary-700 .text-white,
+  .bg-primary-600 .text-white,
+  .bg-primary-500 .text-white {
+    color: #ffffff !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    font-weight: 500 !important;
+  }
+  
+  /* Enlaces del menú móvil con mejor visibilidad */
+  .md\:hidden .text-primary-200 {
+    color: #ffffff !important;
+    font-weight: 500 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+  
+  /* Hover en móviles más visible */
+  .md\:hidden .hover\:bg-primary-600\/50:hover {
+    background-color: #007F3A !important;
+    color: #ffffff !important;
+  }
+  
+  /* Botón de menú móvil */
+  .md\\:block button {
+    background-color: #007F3A !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  /* Títulos y texto general en móviles */
+  h1, h2, h3, h4, h5, h6 {
+    color: #003918 !important;
+    font-weight: 600 !important;
+  }
+  
+  p, span, div {
+    color: #1a1a1a !important;
+  }
+  
+  /* Asegurar que el texto sea visible sobre fondos claros */
+  .text-gray-400,
+  .text-gray-500,
+  .text-gray-600 {
+    color: #4a5568 !important;
+  }
+}
+
+/* Fix para navegación activa */
+.nav-link-active {
   background-color: #007F3A !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+/* Mejorar visibilidad de enlaces */
+a, button {
+  color: inherit !important;
+  font-weight: 500 !important;
+}
+
+/* Transiciones suaves */
+.transition-colors {
+  transition: color 0.2s ease, background-color 0.2s ease !important;
 }

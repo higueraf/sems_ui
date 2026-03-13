@@ -4,6 +4,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { useKeepAlive } from './hooks/useKeepAlive';
 import { useAuthInit } from './hooks/useAuthInit';
 import './styles/navbar-fix.css';
+import './styles/mobile-fix.css';
 
 // Public pages
 import PublicLayout from './components/public/PublicLayout';

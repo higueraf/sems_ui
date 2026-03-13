@@ -1,0 +1,70 @@
+/* Fix general para visibilidad en móviles */
+
+/* Asegurar contraste en todo el sitio */
+@media (max-width: 768px) {
+  /* Títulos con máximo contraste */
+  h1, h2, h3, h4, h5, h6 {
+    color: #003918 !important;
+    font-weight: 700 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Texto principal */
+  body, .text-gray-700, .text-gray-800 {
+    color: #1a1a1a !important;
+  }
+  
+  /* Texto secundario con mejor contraste */
+  .text-gray-500, .text-gray-600 {
+    color: #4a5568 !important;
+    font-weight: 500 !important;
+  }
+  
+  /* Enlaces más visibles */
+  a {
+    color: #006f33 !important;
+    font-weight: 600 !important;
+    text-decoration: underline !important;
+  }
+  
+  a:hover {
+    color: #005c2a !important;
+  }
+  
+  /* Botones con mejor visibilidad */
+  button, .btn {
+    font-weight: 600 !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  /* Cards y contenedores */
+  .bg-white, .bg-gray-50 {
+    background-color: #ffffff !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  /* Input fields */
+  input, textarea, select {
+    color: #1a1a1a !important;
+    background-color: #ffffff !important;
+    border: 2px solid #e2e8f0 !important;
+    font-weight: 500 !important;
+  }
+  
+  /* Labels */
+  label {
+    color: #003918 !important;
+    font-weight: 600 !important;
+  }
+  
+  /* Texto en fondos primarios */
+  .bg-primary-700 *,
+  .bg-primary-600 * {
+    color: #ffffff !important;
+  }
+  
+  /* Iconos */
+  svg, i {
+    color: inherit !important;
+  }
+}
