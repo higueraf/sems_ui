@@ -89,6 +89,31 @@
   }
 }
 
+/* Fix específico para footer - texto blanco como "Cartagena" */
+footer .text-gray-400,
+footer .text-gray-500 {
+  color: #ffffff !important;
+}
+
+/* Footer texto institucional */
+footer .text-center.text-\[10px\] {
+  color: #ffffff !important;
+}
+
+/* Footer siglas de universidades */
+footer .text-\[9px\] {
+  color: #ffffff !important;
+}
+
+/* Footer enlaces de navegación */
+footer a {
+  color: #ffffff !important;
+}
+
+footer a:hover {
+  color: #e5e7eb !important;
+}
+
 /* Fix para navegación activa */
 .nav-link-active {
   background-color: #007F3A !important;
