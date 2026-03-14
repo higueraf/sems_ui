@@ -125,6 +125,21 @@ a, button {
   font-weight: 700 !important;
 }
 
+/* Botón "Postular Ahora" del home */
+.inline-flex.items-center.justify-center.gap-2.bg-white.text-primary-800.hover\:bg-gray-50.font-black.px-10.py-4.rounded-xl.transition-all.shadow-2xl.text-lg {
+  color: #005c2a !important;
+  font-weight: 900 !important;
+}
+
+/* Botón blanco del home más específico */
+.bg-white.text-primary-800 {
+  color: #005c2a !important;
+}
+
+.bg-white.text-primary-800:hover {
+  color: #005c2a !important;
+}
+
 /* Sidebar fixes */
 .sidebar-link {
   color: #d1d5db !important;
