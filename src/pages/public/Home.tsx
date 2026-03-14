@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { eventsApi } from '../../api/events.api';
 import { useTheme } from '../../hooks/useTheme';
+import { useScrollToTop } from '../../hooks/useScrollToTop';
 
 /* ─── Countdown hook ────────────────────────────────────────────────────── */
 function calcTime(target: string) {
@@ -52,6 +53,7 @@ const QUICK_LINKS = [
 /* ══════════════════════════════════════════════════════════════════════════ */
 export default function Home() {
   const { isDark } = useTheme();
+  useScrollToTop(); // Scroll automático al principio de la página
   const [slide, setSlide] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
 
