@@ -45,7 +45,7 @@ export default function PageSectionsAdmin() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <h1 className="font-heading font-bold text-2xl text-gray-900">Contenido del Sitio Web</h1>
-        <button onClick={() => { setEditing(null); setForm(EMPTY); setShowForm(true); }} className="btn-primary btn-sm flex items-center gap-1"><Plus size={16} /> Nueva Sección</button>
+        <button onClick={() => { setEditing(null); setForm(EMPTY); setShowForm(true); }} className="btn-primary btn-sm flex items-center gap-1 text-white"><Plus size={16} /> Nueva Sección</button>
       </div>
       <p className="text-sm text-gray-500">Gestione el contenido dinámico de las secciones del sitio público.</p>
       <div className="space-y-3">

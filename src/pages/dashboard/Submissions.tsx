@@ -107,7 +107,7 @@ function BulkEmailModal({
                 <p className="font-bold text-gray-900 text-lg">¡Envío iniciado!</p>
                 <p className="text-gray-500 text-sm mt-1">{result.message}</p>
               </div>
-              <div className="bg-green-50 rounded-xl p-4 text-sm text-green-700 font-medium">
+              <div className="bg-green-50 rounded-xl p-4 text-sm text-white font-medium">
                 {result.queued} correo{result.queued !== 1 ? 's' : ''} en cola de despacho
               </div>
               <p className="text-xs text-gray-400">
@@ -286,7 +286,7 @@ export default function Submissions() {
           {/* Botón de correo masivo */}
           <button
             onClick={() => setShowBulkModal(true)}
-            className="btn-secondary flex items-center gap-2 text-sm"
+            className="btn-secondary flex items-center gap-2 text-sm "
             title="Enviar correo masivo a postulantes"
           >
             <Mail size={15} />
@@ -411,7 +411,7 @@ export default function Submissions() {
                         <td className="table-td">
                           <Link
                             to={`/dashboard/postulaciones/${sub.id}`}
-                            className="btn-primary btn-sm flex items-center gap-1 !py-1.5"
+                            className="btn-primary btn-sm flex items-center gap-1 !py-1.5 text-white"
                           >
                             <Eye size={14} />
                             Ver

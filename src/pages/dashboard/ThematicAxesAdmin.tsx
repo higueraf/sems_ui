@@ -37,7 +37,7 @@ export default function ThematicAxesAdmin() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <h1 className="font-heading font-bold text-2xl text-gray-900">Ejes Temáticos</h1>
-        <button onClick={() => { setEditing(null); setForm(EMPTY); setShowForm(true); }} className="btn-primary btn-sm flex items-center gap-1"><Plus size={16} /> Nuevo Eje</button>
+        <button onClick={() => { setEditing(null); setForm(EMPTY); setShowForm(true); }} className="btn-primary btn-sm flex items-center gap-1 text-white"><Plus size={16} /> Nuevo Eje</button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {isLoading ? <div className="card text-center text-gray-400 py-8 col-span-2">Cargando...</div> : axes?.map((a) => (
@@ -61,7 +61,7 @@ export default function ThematicAxesAdmin() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
             <div className="p-5 border-b flex items-center justify-between">
-              <h3 className="font-heading font-bold text-lg">{editing ? 'Editar Eje' : 'Nuevo Eje Temático'}</h3>
+              <h3 className="font-heading font-bold text-lg text-white">{editing ? 'Editar Eje' : 'Nuevo Eje Temático'}</h3>
               <button onClick={close}><X size={20} /></button>
             </div>
             <div className="p-5 space-y-4">

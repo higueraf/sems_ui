@@ -152,7 +152,7 @@ export default function SubmissionDetail() {
                     )}
                     <label
                       htmlFor={`author-photo-${author.id}`}
-                      className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary-600 hover:bg-primary-700 rounded-full flex items-center justify-center cursor-pointer shadow-md transition-colors"
+                      className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary-600 hover:bg-primary-700 text-white rounded-full flex items-center justify-center cursor-pointer shadow-md transition-colors"
                       title="Subir/cambiar foto"
                     >
                       {uploadingPhotoId === author.id

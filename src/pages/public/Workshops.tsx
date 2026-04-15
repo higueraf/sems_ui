@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, Calendar, MapPin, Clock, Youtube, Play } from 'lucide-react';
 import { eventsApi } from '../../api/events.api';
-import { ScientificEvent, EventVideo } from '../../types';
+import { ScientificEvent, EventVideo, Workshop } from '../../types';
 import { formatDate } from '../../utils';
 import { useTheme } from '../../hooks/useTheme';
 
@@ -101,6 +101,72 @@ function VideoCard({ video }: { video: EventVideo }) {
   );
 }
 
+function WorkshopVideoCard({ workshop }: { workshop: Workshop }) {
+  const [open, setOpen] = useState(false);
+  const thumb = workshop.youtubeUrl ? getYouTubeThumbnail(workshop.youtubeUrl) : null;
+
+  return (
+    <>
+      <div
+        className="group relative rounded-xl overflow-hidden cursor-pointer shadow-md hover:shadow-xl transition-shadow bg-gray-900"
+        onClick={() => setOpen(true)}
+      >
+        {thumb ? (
+          <img
+            src={thumb}
+            alt={workshop.title}
+            className="w-full aspect-video object-cover group-hover:scale-105 transition-transform duration-300 opacity-90 group-hover:opacity-100"
+          />
+        ) : (
+          <div className="w-full aspect-video bg-gray-800 flex items-center justify-center">
+            <Youtube size={40} className="text-red-500" />
+          </div>
+        )}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-14 h-14 rounded-full bg-red-600/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+            <Play size={22} className="text-white ml-1" fill="white" />
+          </div>
+        </div>
+        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-3 pt-6">
+          <p className="text-white text-sm font-semibold line-clamp-2">{workshop.title}</p>
+          {workshop.instructor && (
+            <p className="text-gray-300 text-xs mt-0.5">Instructor: {workshop.instructor}</p>
+          )}
+          {workshop.duration && (
+            <p className="text-gray-300 text-xs mt-0.5">Duración: {workshop.duration}h</p>
+          )}
+        </div>
+      </div>
+      {open && workshop.youtubeUrl && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-3xl aspect-video rounded-xl overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <iframe
+              src={getYouTubeEmbed(workshop.youtubeUrl)}
+              title={workshop.title}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="w-full h-full"
+            />
+            <button
+              onClick={() => setOpen(false)}
+              className="absolute top-3 right-3 bg-black/60 hover:bg-black/80 text-white rounded-full w-8 h-8 flex items-center justify-center text-lg font-bold transition-colors"
+              aria-label="Cerrar"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function WorkshopPanel({ event }: { event: ScientificEvent }) {
   const FORMAT_LABELS: Record<string, string> = {
     in_person: 'Presencial',
@@ -163,22 +229,22 @@ function WorkshopPanel({ event }: { event: ScientificEvent }) {
         </div>
       </div>
 
-      {event.videos && event.videos.length > 0 ? (
+      {event.workshops && event.workshops.length > 0 ? (
         <div>
           <h3 className="font-heading font-bold text-lg text-gray-900 mb-4 flex items-center gap-2">
             <Youtube size={20} className="text-red-500" />
-            Videos del Taller
+            Talleres y Videos
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {event.videos.map((v) => (
-              <VideoCard key={v.id} video={v} />
+            {event.workshops.map((w) => (
+              <WorkshopVideoCard key={w.id} workshop={w} />
             ))}
           </div>
         </div>
       ) : (
         <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-8 text-center text-gray-400">
           <Youtube size={32} className="mx-auto mb-2 opacity-40" />
-          <p className="text-sm">Próximamente se agregarán los videos de este taller.</p>
+          <p className="text-sm">Próximamente se agregarán los talleres de este evento.</p>
         </div>
       )}
     </div>

@@ -29,6 +29,23 @@ export interface EventVideo {
   createdAt: string;
 }
 
+export interface Workshop {
+  id: string;
+  eventId: string;
+  title: string;
+  description?: string;
+  instructor?: string;
+  duration?: number;
+  maxCapacity?: number;
+  prerequisites?: string;
+  registrationUrl?: string;
+  materialsUrl?: string;
+  youtubeUrl?: string;
+  displayOrder: number;
+  status: string;
+  createdAt: string;
+}
+
 export interface ScientificEvent {
   id: string;
   name: string;
@@ -59,6 +76,7 @@ export interface ScientificEvent {
   organizers?: Organizer[];
   guidelines?: Guideline[];
   videos?: EventVideo[];
+  workshops?: Workshop[];
 }
 
 export interface EventPageSection {

@@ -97,7 +97,7 @@ export default function DashboardHome() {
         </Link>
         <Link to="/dashboard/agenda" className="card hover:shadow-md transition-shadow group">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center group-hover:bg-green-600 group-hover:text-white transition-colors">
+            <div className="w-12 h-12 bg-green-100 text-white rounded-xl flex items-center justify-center group-hover:bg-green-600 group-hover:text-white transition-colors">
               <CalendarDays size={22} />
             </div>
             <div>

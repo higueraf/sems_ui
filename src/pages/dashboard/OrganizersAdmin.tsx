@@ -148,7 +148,7 @@ function MembersPanel({ organizer }: { organizer: Organizer }) {
                 {/* Botón subir foto encima */}
                 <label
                   htmlFor={`photo-${m.id}`}
-                  className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary-600 hover:bg-primary-700
+                  className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary-600 hover:bg-primary-700 text-white
                     rounded-full flex items-center justify-center cursor-pointer shadow-md"
                   title="Subir foto"
                 >
@@ -405,7 +405,7 @@ export default function OrganizersAdmin() {
         </div>
         <button
           onClick={() => { setEditing(null); setForm({ ...EMPTY_ORG, eventId: event?.id }); setShowForm(true); }}
-          className="btn-primary btn-sm flex items-center gap-1"
+          className="btn-primary btn-sm flex items-center gap-1 text-white"
         >
           <Plus size={16} /> Nueva institución
         </button>
@@ -451,7 +451,7 @@ export default function OrganizersAdmin() {
                     )}
                     <label
                       htmlFor={`logo-${org.id}`}
-                      className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary-600 hover:bg-primary-700
+                      className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary-600 hover:bg-primary-700 text-white
                         rounded-full flex items-center justify-center cursor-pointer shadow"
                       title="Subir logo"
                     >
@@ -559,7 +559,7 @@ export default function OrganizersAdmin() {
                       )}
                       <label
                         htmlFor={`person-photo-${p.id}`}
-                        className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary-600 hover:bg-primary-700
+                        className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary-600 hover:bg-primary-700 text-white
                           rounded-full flex items-center justify-center cursor-pointer shadow"
                         title="Subir foto"
                       >

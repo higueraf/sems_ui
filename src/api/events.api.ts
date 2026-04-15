@@ -1,5 +1,5 @@
 import api from './axios';
-import { ScientificEvent, EventVideo } from '../types';
+import { ScientificEvent, EventVideo, Workshop } from '../types';
 
 export const eventsApi = {
   getActive: () =>
@@ -48,4 +48,17 @@ export const eventsApi = {
 
   removeVideo: (videoId: string) =>
     api.delete(`/events/videos/${videoId}`).then((r) => r.data),
+
+  // ---- Talleres ----
+  getWorkshopsByEvent: (eventId: string) =>
+    api.get<Workshop[]>(`/events/${eventId}/workshops`).then((r) => r.data),
+
+  addWorkshop: (eventId: string, data: Omit<Workshop, 'id' | 'eventId' | 'createdAt'>) =>
+    api.post<Workshop>(`/events/${eventId}/workshops`, data).then((r) => r.data),
+
+  updateWorkshop: (workshopId: string, data: Partial<Omit<Workshop, 'id' | 'eventId' | 'createdAt'>>) =>
+    api.patch<Workshop>(`/events/workshops/${workshopId}`, data).then((r) => r.data),
+
+  removeWorkshop: (workshopId: string) =>
+    api.delete(`/events/workshops/${workshopId}`).then((r) => r.data),
 };

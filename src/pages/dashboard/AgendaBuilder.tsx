@@ -211,7 +211,7 @@ export default function AgendaBuilder() {
         <div className="flex gap-2">
           <button
             onClick={() => { setEditingSlot(null); setForm({ ...EMPTY_FORM, day: selectedDay }); setShowForm(true); }}
-            className="btn-primary btn-sm flex items-center gap-1"
+            className="btn-primary btn-sm flex items-center gap-1 text-white"
           >
             <Plus size={16} /> Agregar Bloque
           </button>

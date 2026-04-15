@@ -51,7 +51,7 @@ export default function UsersAdmin() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <h1 className="font-heading font-bold text-2xl text-gray-900">Usuarios del Sistema</h1>
-        <button onClick={() => { setEditing(null); setForm(EMPTY); setShowForm(true); }} className="btn-primary btn-sm flex items-center gap-1">
+        <button onClick={() => { setEditing(null); setForm(EMPTY); setShowForm(true); }} className="btn-primary btn-sm flex items-center gap-1 text-white">
           <Plus size={16} /> Nuevo Usuario
         </button>
       </div>

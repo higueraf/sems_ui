@@ -177,7 +177,7 @@ export default function GuidelinesAdmin() {
         <h1 className="font-heading font-bold text-2xl text-gray-900">Pautas de Publicación</h1>
         <button
           onClick={() => { setEditing(null); setForm(EMPTY); setPendingFile(null); setShowForm(true); }}
-          className="btn-primary btn-sm flex items-center gap-1"
+          className="btn-primary btn-sm flex items-center gap-1 text-white"
         >
           <Plus size={16} /> Nueva Pauta
         </button>
