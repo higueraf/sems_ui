@@ -7,7 +7,7 @@ import {
   Loader2, FileText, ShieldCheck, Eye, RefreshCw,
 } from 'lucide-react';
 import { submissionsApi } from '../../api/submissions.api';
-import { usersApi } from '../../api/index';
+import { usersApi, productTypesApi } from '../../api/index';
 import { useAuthStore } from '../../store/auth.store';
 import { STATUS_CONFIG, formatDate, getFileUrl } from '../../utils';
 import { SubmissionStatus } from '../../types';
@@ -51,6 +51,11 @@ export default function SubmissionDetail() {
     queryKey: ['users-admin'],
     queryFn: usersApi.getAll,
     enabled: user?.role === 'admin',
+  });
+
+  const { data: allProductTypes } = useQuery({
+    queryKey: ['product-types'],
+    queryFn: () => productTypesApi.getAll(true),
   });
 
   const statusMutation = useMutation({
@@ -312,6 +317,11 @@ export default function SubmissionDetail() {
             submissionId={sub.id}
             files={sub.files ?? []}
             currentFileName={sub.fileName}
+            productTypes={
+              allProductTypes?.filter(pt =>
+                sub.productTypeIds?.includes(pt.id) ?? pt.id === sub.productType?.id
+              )
+            }
           />
 
           {/* Secciones de contenido */}

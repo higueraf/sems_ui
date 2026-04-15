@@ -14,6 +14,8 @@ import OrganizersPage from './pages/public/OrganizersPage';
 import Submit from './pages/public/Submit';
 import AgendaPublic from './pages/public/AgendaPublic';
 import CheckStatus from './pages/public/CheckStatus';
+import PreviousEvents from './pages/public/PreviousEvents';
+import Workshops from './pages/public/Workshops';
 
 // Dashboard pages
 import DashboardLayout from './components/dashboard/DashboardLayout';
@@ -79,6 +81,8 @@ export default function App() {
             <Route path="/organizadores" element={<OrganizersPage />} />
             <Route path="/postular" element={<Submit />} />
             <Route path="/agenda" element={<AgendaPublic />} />
+            <Route path="/simposios" element={<PreviousEvents />} />
+            <Route path="/talleres" element={<Workshops />} />
             <Route path="/verificar" element={<CheckStatus />} />
           </Route>
 

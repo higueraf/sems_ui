@@ -3,11 +3,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
   Plus, Edit2, Trash2, X, Check, Upload, FileText, Presentation,
-  FileIcon, Trash, Download, Loader2,
+  FileIcon, Trash, Download, Loader2, Link2,
 } from 'lucide-react';
 import { eventsApi } from '../../api/events.api';
-import { guidelinesApi } from '../../api/index';
-import { Guideline } from '../../types';
+import { guidelinesApi, productTypesApi } from '../../api/index';
+import { Guideline, ScientificProductType } from '../../types';
 
 // API_BASE eliminado — los archivos de pautas están en Backblaze B2 (privado).
 // La descarga se hace obteniendo una presigned URL desde el backend.
@@ -19,6 +19,7 @@ const EMPTY = {
   iconName: '',
   displayOrder: 0,
   isVisible: true,
+  productTypeId: null as string | null,
 };
 
 const CAT_LABELS: Record<string, string> = {
@@ -74,6 +75,15 @@ export default function GuidelinesAdmin() {
     queryFn: () => guidelinesApi.getAll(event!.id),
     enabled: !!event?.id,
   });
+  const { data: productTypes } = useQuery({
+    queryKey: ['product-types'],
+    queryFn: () => productTypesApi.getAll(),
+  });
+
+  /** IDs de tipos de producto ya asignados a alguna pauta (excluye la que se está editando) */
+  const usedProductTypeIds = (guidelines ?? [])
+    .filter((g) => g.productTypeId && g.id !== editing?.id)
+    .map((g) => g.productTypeId as string);
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['guidelines-admin'] });
@@ -147,7 +157,7 @@ export default function GuidelinesAdmin() {
 
   const openEdit = (g: Guideline) => {
     setEditing(g);
-    setForm({ ...g });
+    setForm({ ...g, productTypeId: g.productTypeId ?? null });
     setPendingFile(null);
     setShowForm(true);
   };
@@ -183,9 +193,17 @@ export default function GuidelinesAdmin() {
           guidelines?.map((g) => (
             <div key={g.id} className="card !py-4 flex items-start gap-4">
               <div className="flex-1 min-w-0">
-                {/* Badges de categoría y estado */}
+                {/* Badges de categoría, tipo de producto y estado */}
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <span className="badge bg-blue-100 text-blue-700 text-xs">
+                  {g.productType ? (
+                    <span className="badge bg-primary-100 text-primary-700 text-xs flex items-center gap-1">
+                      <Link2 size={10} />
+                      {g.productType.name}
+                    </span>
+                  ) : (
+                    <span className="badge bg-gray-100 text-gray-400 text-xs">Sin tipo asignado</span>
+                  )}
+                  <span className="badge bg-blue-50 text-blue-600 text-xs">
                     {CAT_LABELS[g.category] || g.category}
                   </span>
                   {!g.isVisible && (
@@ -297,6 +315,33 @@ export default function GuidelinesAdmin() {
 
             {/* Body */}
             <div className="p-5 space-y-4 overflow-y-auto max-h-[65vh]">
+              {/* Tipo de producto científico — 1 pauta por tipo */}
+              <div>
+                <label className="form-label flex items-center gap-1">
+                  <Link2 size={13} className="text-primary-500" />
+                  Tipo de Producto Científico
+                </label>
+                <select
+                  className="form-input"
+                  value={form.productTypeId ?? ''}
+                  onChange={(e) => setForm({ ...form, productTypeId: e.target.value || null })}
+                >
+                  <option value="">— Sin asignar —</option>
+                  {(productTypes ?? []).map((pt: ScientificProductType) => {
+                    const taken = usedProductTypeIds.includes(pt.id);
+                    return (
+                      <option key={pt.id} value={pt.id} disabled={taken}>
+                        {pt.name}{taken ? ' (ya tiene pauta)' : ''}
+                        {!pt.isActive ? ' (inactivo)' : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+                <p className="text-xs text-gray-400 mt-1">
+                  Solo se permite una pauta por tipo de producto científico.
+                </p>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="form-label">Categoría</label>

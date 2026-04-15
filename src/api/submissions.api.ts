@@ -50,18 +50,20 @@ export const submissionsApi = {
 
   /**
    * Sube una nueva versión del documento desde el dashboard.
-   * La nueva versión queda como oficial automáticamente.
+   * La nueva versión queda como oficial automáticamente para su tipo de producto.
    */
   addFileVersion: (
     id: string,
     file: File,
     fileType: 'manuscript' | 'correction' | 'final' = 'correction',
     notes?: string,
+    productTypeId?: string,
   ) => {
     const form = new FormData();
     form.append('file', file, file.name);
     form.append('fileType', fileType);
     if (notes) form.append('notes', notes);
+    if (productTypeId) form.append('productTypeId', productTypeId);
     return api.post<SubmissionFile>(`/submissions/admin/${id}/files`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then((r) => r.data);

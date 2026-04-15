@@ -8,6 +8,8 @@ const navLinks = [
   { to: '/pautas', label: 'Pautas' },
   { to: '/organizadores', label: 'Organizadores' },
   { to: '/agenda', label: 'Agenda' },
+  { to: '/simposios', label: 'Simposios' },
+  { to: '/talleres', label: 'Talleres' },
   { to: '/verificar', label: 'Verificar' },
 ];
 

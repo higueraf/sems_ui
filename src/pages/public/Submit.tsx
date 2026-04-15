@@ -38,12 +38,6 @@ const formSchema = z.object({
   abstractEn: z.string().optional(),
   keywordsEs: z.string().optional(),
   keywordsEn: z.string().optional(),
-  introduction: z.string().optional(),
-  methodology: z.string().optional(),
-  results: z.string().optional(),
-  discussion: z.string().optional(),
-  conclusions: z.string().optional(),
-  bibliography: z.string().optional(),
   countryId: z.string().optional(),
   usesAi: z.boolean().default(false),
   aiUsageDescription: z.string().optional(),
@@ -240,10 +234,56 @@ function AuthorIdDocPicker({ index, authorName, idDoc, onChange }: AuthorIdDocPi
 
 // ── Componente principal ─────────────────────────────────────────────────────
 
+// ── Helpers para formatos de archivo ─────────────────────────────────────────
+
+const WORD_MIMES = [
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+];
+const PPT_MIMES = [
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+];
+const PDF_MIMES = ['application/pdf'];
+
+function getAcceptForFormats(formats?: string): string {
+  if (!formats) return '.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  const fmts = formats.split(',').map(f => f.trim().toLowerCase());
+  const parts: string[] = [];
+  if (fmts.includes('docx') || fmts.includes('doc'))
+    parts.push('.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  if (fmts.includes('pptx') || fmts.includes('ppt'))
+    parts.push('.ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation');
+  if (fmts.includes('pdf'))
+    parts.push('.pdf,application/pdf');
+  return parts.join(',') || '.doc,.docx';
+}
+
+function getFormatLabel(formats?: string): string {
+  if (!formats) return 'Word (.doc/.docx)';
+  const fmts = formats.split(',').map(f => f.trim().toLowerCase());
+  const labels: string[] = [];
+  if (fmts.includes('docx') || fmts.includes('doc')) labels.push('Word (.docx)');
+  if (fmts.includes('pptx') || fmts.includes('ppt')) labels.push('PowerPoint (.pptx)');
+  if (fmts.includes('pdf'))                           labels.push('PDF');
+  return labels.join(', ') || 'Word (.docx)';
+}
+
+function validateFileForFormats(file: File, formats?: string): boolean {
+  if (!formats) return WORD_MIMES.includes(file.type);
+  const fmts = formats.split(',').map(f => f.trim().toLowerCase());
+  const allowed: string[] = [];
+  if (fmts.includes('docx') || fmts.includes('doc'))  allowed.push(...WORD_MIMES);
+  if (fmts.includes('pptx') || fmts.includes('ppt'))  allowed.push(...PPT_MIMES);
+  if (fmts.includes('pdf'))                            allowed.push(...PDF_MIMES);
+  return allowed.includes(file.type);
+}
+
 export default function Submit() {
   useScrollToTop(); // Scroll automático al principio de la página
   const [step, setStep]           = useState<Step>('info');
-  const [file, setFile]           = useState<File | null>(null);
+  /** Archivos por tipo de producto: clave = productTypeId */
+  const [productFiles, setProductFiles] = useState<Record<string, File | null>>({});
   const [authorPhotos, setAuthorPhotos] = useState<(File | null)[]>([null, null, null, null]);
   const [authorIdDocs, setAuthorIdDocs] = useState<(File | null)[]>([null, null, null, null]);
   const [submitted, setSubmitted] = useState<{ referenceCode: string } | null>(null);
@@ -339,8 +379,10 @@ export default function Submit() {
         }
       });
 
-      // Manuscrito
-      if (file) formData.append('file', file);
+      // Archivos por tipo de producto científico
+      Object.entries(productFiles).forEach(([ptId, ptFile]) => {
+        if (ptFile) formData.append(`productFile_${ptId}`, ptFile, ptFile.name);
+      });
 
       // Fotos de autores — fieldname = "authorPhoto_0", "authorPhoto_1", ...
       authorPhotos.forEach((photo, idx) => {
@@ -722,45 +764,81 @@ export default function Submit() {
             {step === 'content' && (
               <div className="space-y-6">
                 <h2 className="font-heading font-bold text-xl text-gray-800 border-b pb-3">
-                  Contenido del Trabajo
+                  Documentos del Trabajo
                 </h2>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
-                  <strong>Nota:</strong> Los campos de contenido son opcionales si adjunta el documento completo.
-                  Si no sube un archivo, complete los campos principales.
-                </div>
-
-                {[
-                  { field: 'introduction' as const, label: 'Introducción (1 a 1.5 páginas)', rows: 8 },
-                  { field: 'methodology' as const, label: 'Método de Investigación (máximo 1 página)', rows: 6 },
-                  { field: 'results' as const, label: 'Resultados (máximo 2 páginas)', rows: 8 },
-                  { field: 'discussion' as const, label: 'Discusión (máximo 250 palabras)', rows: 5 },
-                  { field: 'conclusions' as const, label: 'Conclusiones (máximo 1 página)', rows: 6 },
-                  { field: 'bibliography' as const, label: 'Bibliografía (formato APA 7ma edición)', rows: 6 },
-                ].map(({ field, label, rows }) => (
-                  <div key={field}>
-                    <label className="form-label">{label}</label>
-                    <textarea rows={rows} className="form-input resize-y" {...register(field)} />
-                  </div>
-                ))}
-
-                <div>
-                  <label className="form-label">Adjuntar Documento (Word, máx. 15MB)</label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-primary-400 transition-colors">
-                    <Upload size={32} className="mx-auto text-gray-400 mb-3" />
-                    <p className="text-gray-500 text-sm mb-3">Arrastre su archivo aquí o haga clic para seleccionar</p>
-                    <input type="file" accept=".doc,.docx" onChange={(e) => setFile(e.target.files?.[0] || null)} className="hidden" id="file-upload" />
-                    <label htmlFor="file-upload" className="btn-outline btn-sm cursor-pointer inline-block">
-                      Seleccionar Archivo
+                {/* ── Archivos por tipo de producto científico ── */}
+                {selectedProductTypeIds.length > 0 ? (
+                  <div className="space-y-4">
+                    <label className="form-label">
+                      Documentos por Tipo de Producto Científico (máx. 20 MB c/u)
                     </label>
-                    {file && (
-                      <p className="mt-3 text-sm text-primary-600 font-medium flex items-center justify-center gap-2">
-                        <CheckCircle size={16} />
-                        {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                      </p>
-                    )}
+                    {selectedProductTypeIds.map((ptId) => {
+                      const pt    = productTypes?.find(p => p.id === ptId);
+                      const ptFile = productFiles[ptId] ?? null;
+                      const accept = getAcceptForFormats(pt?.allowedFileFormats);
+                      const label  = getFormatLabel(pt?.allowedFileFormats);
+                      const inputId = `productFile_${ptId}`;
+                      return (
+                        <div key={ptId} className="border border-gray-200 rounded-xl p-4">
+                          <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            <FileText size={15} className="text-primary-500" />
+                            {pt?.name ?? ptId}
+                            <span className="text-xs text-gray-400 font-normal">({label})</span>
+                          </p>
+                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-5 text-center hover:border-primary-400 transition-colors">
+                            <Upload size={24} className="mx-auto text-gray-400 mb-2" />
+                            <p className="text-gray-500 text-xs mb-2">Clic para seleccionar</p>
+                            <input
+                              type="file"
+                              accept={accept}
+                              className="hidden"
+                              id={inputId}
+                              onChange={(e) => {
+                                const f = e.target.files?.[0];
+                                if (!f) return;
+                                if (f.size > 20 * 1024 * 1024) {
+                                  toast.error(`El archivo no debe superar 20 MB`);
+                                  return;
+                                }
+                                if (!validateFileForFormats(f, pt?.allowedFileFormats)) {
+                                  toast.error(`Formato no válido para "${pt?.name}". Use: ${label}`);
+                                  return;
+                                }
+                                setProductFiles(prev => ({ ...prev, [ptId]: f }));
+                                e.target.value = '';
+                              }}
+                            />
+                            <label htmlFor={inputId} className="btn-outline btn-sm cursor-pointer inline-block">
+                              Seleccionar Archivo
+                            </label>
+                          </div>
+                          {ptFile ? (
+                            <div className="mt-2 flex items-center justify-between bg-primary-50 rounded-lg px-3 py-2">
+                              <p className="text-sm text-primary-700 font-medium flex items-center gap-2">
+                                <CheckCircle size={14} />
+                                {ptFile.name} ({(ptFile.size / 1024 / 1024).toFixed(2)} MB)
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => setProductFiles(prev => ({ ...prev, [ptId]: null }))}
+                                className="text-red-400 hover:text-red-600"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-amber-600 mt-2">Sin archivo adjunto aún</p>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
+                ) : (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-700">
+                    Seleccione al menos un Tipo de Producto Científico en el paso anterior para adjuntar archivos.
+                  </div>
+                )}
               </div>
             )}
 
@@ -824,10 +902,28 @@ export default function Submit() {
                     </div>
                   </div>
 
-                  {file && (
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="font-semibold text-gray-600 mb-2">Archivo adjunto</p>
-                      <p className="text-gray-800">{file.name}</p>
+                  {Object.keys(productFiles).some(k => productFiles[k]) && (
+                    <div className="bg-gray-50 rounded-lg p-4 md:col-span-2">
+                      <p className="font-semibold text-gray-600 mb-2">Archivos adjuntos</p>
+                      <ul className="space-y-1">
+                        {selectedProductTypeIds.map(ptId => {
+                          const ptFile = productFiles[ptId];
+                          const pt = productTypes?.find(p => p.id === ptId);
+                          return ptFile ? (
+                            <li key={ptId} className="flex items-center gap-2 text-sm text-gray-800">
+                              <CheckCircle size={13} className="text-green-500" />
+                              <span className="font-medium">{pt?.name ?? ptId}:</span>
+                              <span>{ptFile.name}</span>
+                            </li>
+                          ) : (
+                            <li key={ptId} className="flex items-center gap-2 text-sm text-amber-600">
+                              <FileText size={13} />
+                              <span className="font-medium">{pt?.name ?? ptId}:</span>
+                              <span>Sin archivo</span>
+                            </li>
+                          );
+                        })}
+                      </ul>
                     </div>
                   )}
                 </div>

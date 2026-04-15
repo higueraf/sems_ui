@@ -19,6 +19,16 @@ export interface Country {
 
 export type EventFormat = 'in_person' | 'online' | 'hybrid';
 
+export interface EventVideo {
+  id: string;
+  eventId: string;
+  title: string;
+  description?: string;
+  youtubeUrl: string;
+  displayOrder: number;
+  createdAt: string;
+}
+
 export interface ScientificEvent {
   id: string;
   name: string;
@@ -42,10 +52,13 @@ export interface ScientificEvent {
   contactPhone?: string;
   bannerImageUrl?: string;
   logoUrl?: string;
+  /** 'symposium' (simposio) | 'workshop' (taller) */
+  category?: string;
   pageSections?: EventPageSection[];
   thematicAxes?: ThematicAxis[];
   organizers?: Organizer[];
   guidelines?: Guideline[];
+  videos?: EventVideo[];
 }
 
 export interface EventPageSection {
@@ -132,6 +145,8 @@ export interface Guideline {
   fileUrl?: string | null;
   fileName?: string | null;
   fileMimeType?: string | null;
+  productTypeId?: string | null;
+  productType?: ScientificProductType | null;
 }
 
 export interface ScientificProductType {
@@ -143,6 +158,8 @@ export interface ScientificProductType {
   maxPages?: number;
   maxPresentationMinutes?: number;
   requiresFile: boolean;
+  /** Formatos permitidos separados por coma: "docx", "pptx", "pdf". Null = solo Word. */
+  allowedFileFormats?: string;
   formatGuidelinesHtml?: string;
   isActive: boolean;
 }
@@ -164,6 +181,9 @@ export interface SubmissionFile {
   version: number;
   notes?: string;
   isActive: boolean;
+  /** Tipo de producto científico al que pertenece este archivo */
+  productTypeId?: string;
+  productTypeName?: string;
   uploadedBy?: User;
   uploadedById?: string;
   createdAt: string;
@@ -209,6 +229,8 @@ export interface Submission {
   eventId: string;
   thematicAxis: ThematicAxis;
   productType: ScientificProductType;
+  /** IDs de todos los tipos de producto seleccionados */
+  productTypeIds?: string[];
   titleEs: string;
   titleEn?: string;
   abstractEs: string;

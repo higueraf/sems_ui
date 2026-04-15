@@ -1,5 +1,5 @@
 import api from './axios';
-import { ScientificEvent } from '../types';
+import { ScientificEvent, EventVideo } from '../types';
 
 export const eventsApi = {
   getActive: () =>
@@ -7,6 +7,12 @@ export const eventsApi = {
 
   getPublic: (id: string) =>
     api.get<ScientificEvent>(`/events/${id}/public`).then((r) => r.data),
+
+  getPrevious: () =>
+    api.get<ScientificEvent[]>('/events/previous').then((r) => r.data),
+
+  getWorkshops: () =>
+    api.get<ScientificEvent[]>('/events/workshops').then((r) => r.data),
 
   getAll: () =>
     api.get<ScientificEvent[]>('/events').then((r) => r.data),
@@ -28,4 +34,18 @@ export const eventsApi = {
 
   remove: (id: string) =>
     api.delete(`/events/${id}`).then((r) => r.data),
+
+  // ── Videos YouTube ──────────────────────────────────────────────────────────
+
+  getVideos: (eventId: string) =>
+    api.get<EventVideo[]>(`/events/${eventId}/videos`).then((r) => r.data),
+
+  addVideo: (eventId: string, data: Omit<EventVideo, 'id' | 'eventId' | 'createdAt'>) =>
+    api.post<EventVideo>(`/events/${eventId}/videos`, data).then((r) => r.data),
+
+  updateVideo: (videoId: string, data: Partial<Omit<EventVideo, 'id' | 'eventId' | 'createdAt'>>) =>
+    api.patch<EventVideo>(`/events/videos/${videoId}`, data).then((r) => r.data),
+
+  removeVideo: (videoId: string) =>
+    api.delete(`/events/videos/${videoId}`).then((r) => r.data),
 };
