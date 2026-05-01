@@ -35,18 +35,17 @@ function DownloadGuidelineButton({ g, isDark }: { g: Guideline; isDark: boolean 
   const FileIcon_ = g.fileMimeType?.includes('pdf')
     ? FileText
     : g.fileMimeType?.includes('presentation') || g.fileMimeType?.includes('powerpoint')
-    ? Presentation
-    : FileIcon;
+      ? Presentation
+      : FileIcon;
 
   return (
     <button
       onClick={handleClick}
       disabled={loading}
-      className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-60 ${
-        isDark
+      className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-60 ${isDark
           ? 'bg-primary-800 text-primary-200 hover:bg-primary-700'
           : 'bg-primary-50 text-primary-700 border border-primary-200 hover:bg-primary-100'
-      }`}
+        }`}
     >
       {loading ? <Loader2 size={16} className="animate-spin flex-shrink-0" /> : <FileIcon_ size={16} className="flex-shrink-0" />}
       {loading ? <Loader2 size={14} className="animate-spin flex-shrink-0" /> : <Download size={14} className="flex-shrink-0" />}
@@ -69,14 +68,14 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 export default function Guidelines() {
   const { isDark } = useTheme();
   useScrollToTop(); // Scroll automático al principio de la página
-  const bg      = isDark ? 'bg-gray-950' : 'bg-white';
-  const bgAlt   = isDark ? 'bg-gray-900' : 'bg-[#F5EDD8]';
-  const text    = isDark ? 'text-gray-100' : 'text-gray-900';
+  const bg = isDark ? 'bg-gray-950' : 'bg-white';
+  const bgAlt = isDark ? 'bg-gray-900' : 'bg-[#F5EDD8]';
+  const text = isDark ? 'text-gray-100' : 'text-gray-900';
   const textMut = isDark ? 'text-gray-400' : 'text-gray-500';
-  const green   = isDark ? 'text-primary-400' : 'text-primary-700';
+  const green = isDark ? 'text-primary-400' : 'text-primary-700';
   const heading = isDark ? 'text-white' : 'text-primary-900';
   const divider = isDark ? 'bg-primary-500' : 'bg-primary-600';
-  const card    = isDark ? 'bg-gray-800 border-white/10' : 'bg-white border-gray-100';
+  const card = isDark ? 'bg-gray-800 border-white/10' : 'bg-white border-gray-100';
 
   const { data: event } = useQuery({ queryKey: ['event-active'], queryFn: eventsApi.getActive });
   const { data: guidelines, isLoading } = useQuery({
@@ -95,19 +94,19 @@ export default function Guidelines() {
 
   const categoryColors: Record<string, string> = isDark
     ? {
-        format: 'bg-blue-900/50 text-blue-300',
-        submission: 'bg-green-900/50 text-green-300',
-        evaluation: 'bg-yellow-900/50 text-yellow-300',
-        publication: 'bg-purple-900/50 text-purple-300',
-        general: 'bg-gray-700 text-gray-300',
-      }
+      format: 'bg-blue-900/50 text-blue-300',
+      submission: 'bg-green-900/50 text-green-300',
+      evaluation: 'bg-yellow-900/50 text-yellow-300',
+      publication: 'bg-purple-900/50 text-purple-300',
+      general: 'bg-gray-700 text-gray-300',
+    }
     : {
-        format: 'bg-blue-100 text-blue-800',
-        submission: 'bg-green-100 text-green-800',
-        evaluation: 'bg-yellow-100 text-yellow-800',
-        publication: 'bg-purple-100 text-purple-800',
-        general: 'bg-gray-100 text-gray-800',
-      };
+      format: 'bg-blue-100 text-blue-800',
+      submission: 'bg-green-100 text-green-800',
+      evaluation: 'bg-yellow-100 text-yellow-800',
+      publication: 'bg-purple-100 text-purple-800',
+      general: 'bg-gray-100 text-gray-800',
+    };
 
   return (
     <div className={`min-h-screen ${bg}`}>
@@ -194,7 +193,7 @@ export default function Guidelines() {
           <p className={`mb-4 ${isDark ? 'text-primary-400' : 'text-primary-600'}`}>
             Si ya revisó todas las pautas, puede enviar su trabajo científico.
           </p>
-          <a href="/postular" className="btn-primary inline-block">
+          <a href="/postular" className="btn-primary inline-block cursor-pointer text-white">
             Postular mi Trabajo
           </a>
         </div>

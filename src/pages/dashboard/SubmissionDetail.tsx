@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { submissionsApi } from '../../api/submissions.api';
 import { usersApi, productTypesApi } from '../../api/index';
+import api from '../../api/axios';
 import { useAuthStore } from '../../store/auth.store';
 import { STATUS_CONFIG, formatDate, getFileUrl } from '../../utils';
 import { SubmissionStatus } from '../../types';
@@ -35,7 +36,7 @@ export default function SubmissionDetail() {
   const [showEmailModal,    setShowEmailModal]     = useState(false);
   const [notifyApplicant,   setNotifyApplicant]    = useState(true);
   const [uploadingPhotoId,  setUploadingPhotoId]   = useState<string | null>(null);
-  const [downloadingFile,   setDownloadingFile]    = useState(false);
+  const [downloadingFile,   setDownloadingFile]    = useState<string | null>(null);
   const [uploadingIdDocId,  setUploadingIdDocId]   = useState<string | null>(null);
   const [downloadingIdDocId, setDownloadingIdDocId] = useState<string | null>(null);
 
@@ -238,7 +239,18 @@ export default function SubmissionDetail() {
                               setDownloadingIdDocId(author.id);
                               try {
                                 const { url } = await submissionsApi.getAuthorIdDocUrl(author.id);
-                                if (url) { window.open(url, '_blank'); }
+                                if (url) {
+                                  if (url.includes('/api/local-files/private/')) {
+                                    const response = await api.get(url, { responseType: 'blob' });
+                                    const blob = new Blob([response.data], { type: 'application/pdf' });
+                                    const blobUrl = window.URL.createObjectURL(blob);
+                                    window.open(blobUrl, '_blank');
+                                    // No revocamos inmediatamente para permitir que se abra la pestaña
+                                    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+                                  } else {
+                                    window.open(url, '_blank');
+                                  }
+                                }
                                 else     { toast.error('Sin documento de identidad'); }
                               } catch { toast.error('Error al obtener el documento'); }
                               finally   { setDownloadingIdDocId(null); }
@@ -389,32 +401,52 @@ export default function SubmissionDetail() {
               ))}
             </dl>
 
-            {/* Descarga del documento oficial */}
-            {sub.fileUrl && (
-              <button
-                onClick={async () => {
-                  setDownloadingFile(true);
-                  try {
-                    const { url, fileName } = await submissionsApi.getDownloadUrl(sub.id);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.target = '_blank';
-                    a.rel = 'noopener noreferrer';
-                    a.download = fileName || 'manuscrito';
-                    a.click();
-                  } catch { toast.error('No se pudo obtener el enlace de descarga'); }
-                  finally   { setDownloadingFile(false); }
-                }}
-                disabled={downloadingFile}
-                className="btn-outline btn-sm flex items-center gap-1 mt-4 w-full justify-center"
-              >
-                {downloadingFile
-                  ? <Loader2 size={14} className="animate-spin" />
-                  : <Download size={14} />}
-                <span className="truncate max-w-[160px]" title={sub.fileName}>
-                  {downloadingFile ? 'Generando enlace...' : `Descargar Oficial (${sub.fileName || 'doc'})`}
-                </span>
-              </button>
+            {/* Descarga de documentos oficiales */}
+            {sub.files && sub.files.filter((f: any) => f.isActive).length > 0 && (
+              <div className="mt-4 space-y-2">
+                <h4 className="text-xs font-semibold text-gray-500 uppercase">Documentos Oficiales</h4>
+                {sub.files.filter((f: any) => f.isActive).map((activeFile: any) => (
+                  <button
+                    key={activeFile.id}
+                    onClick={async () => {
+                      setDownloadingFile(activeFile.id);
+                      try {
+                        const { url, fileName } = await submissionsApi.getFileVersionDownloadUrl(activeFile.id);
+                        if (url.includes('/api/local-files/private/')) {
+                          // Es un endpoint local privado, requiere JWT. Usamos axios.
+                          const response = await api.get(url, { responseType: 'blob' });
+                          const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+                          const a = document.createElement('a');
+                          a.href = blobUrl;
+                          a.download = fileName || 'documento';
+                          document.body.appendChild(a);
+                          a.click();
+                          a.remove();
+                          window.URL.revokeObjectURL(blobUrl);
+                        } else {
+                          // URL pública o presigned (B2, Cloudinary)
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.target = '_blank';
+                          a.rel = 'noopener noreferrer';
+                          a.download = fileName || 'documento';
+                          a.click();
+                        }
+                      } catch { toast.error('No se pudo obtener el enlace de descarga'); }
+                      finally { setDownloadingFile(null); }
+                    }}
+                    disabled={downloadingFile === activeFile.id}
+                    className="btn-outline btn-sm flex items-center gap-1 w-full justify-center"
+                  >
+                    {downloadingFile === activeFile.id
+                      ? <Loader2 size={14} className="animate-spin" />
+                      : <Download size={14} />}
+                    <span className="truncate max-w-[160px]" title={activeFile.fileName}>
+                      {downloadingFile === activeFile.id ? 'Generando...' : `Descargar (${activeFile.productTypeName || 'Archivo'})`}
+                    </span>
+                  </button>
+                ))}
+              </div>
             )}
 
             {/* Resumen de versiones */}

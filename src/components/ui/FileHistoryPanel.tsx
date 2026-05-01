@@ -20,6 +20,7 @@ import {
   Package,
 } from 'lucide-react';
 import { submissionsApi } from '../../api/submissions.api';
+import api from '../../api/axios';
 import { SubmissionFile, ScientificProductType } from '../../types';
 import { formatDate } from '../../utils';
 
@@ -132,9 +133,18 @@ function ProductTypePanel({
     setDownloading(fileId);
     try {
       const { url } = await submissionsApi.getFileVersionDownloadUrl(fileId);
-      const a = document.createElement('a');
-      a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.download = fileName;
-      a.click();
+      if (url.includes('/api/local-files/private/')) {
+        const response = await api.get(url, { responseType: 'blob' });
+        const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+        const a = document.createElement('a');
+        a.href = blobUrl; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.download = fileName;
+        document.body.appendChild(a); a.click(); a.remove();
+        window.URL.revokeObjectURL(blobUrl);
+      } else {
+        const a = document.createElement('a');
+        a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.download = fileName;
+        a.click();
+      }
     } catch {
       toast.error('No se pudo generar el enlace de descarga');
     } finally {

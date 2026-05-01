@@ -49,10 +49,10 @@ type FormValues = z.infer<typeof formSchema>;
 type Step = 'info' | 'authors' | 'content' | 'confirm';
 
 const STEPS: { key: Step; label: string; icon: React.ReactNode }[] = [
-  { key: 'info',    label: 'Información', icon: <FileText size={16} /> },
-  { key: 'authors', label: 'Autores',     icon: <User size={16} /> },
-  { key: 'content', label: 'Contenido',   icon: <FileText size={16} /> },
-  { key: 'confirm', label: 'Confirmar',   icon: <CheckCircle size={16} /> },
+  { key: 'info', label: 'Información', icon: <FileText size={16} /> },
+  { key: 'authors', label: 'Autores', icon: <User size={16} /> },
+  { key: 'content', label: 'Contenido', icon: <FileText size={16} /> },
+  { key: 'confirm', label: 'Confirmar', icon: <CheckCircle size={16} /> },
 ];
 
 // ── Componente de foto de autor ──────────────────────────────────────────────
@@ -265,7 +265,7 @@ function getFormatLabel(formats?: string): string {
   const labels: string[] = [];
   if (fmts.includes('docx') || fmts.includes('doc')) labels.push('Word (.docx)');
   if (fmts.includes('pptx') || fmts.includes('ppt')) labels.push('PowerPoint (.pptx)');
-  if (fmts.includes('pdf'))                           labels.push('PDF');
+  if (fmts.includes('pdf')) labels.push('PDF');
   return labels.join(', ') || 'Word (.docx)';
 }
 
@@ -273,15 +273,15 @@ function validateFileForFormats(file: File, formats?: string): boolean {
   if (!formats) return WORD_MIMES.includes(file.type);
   const fmts = formats.split(',').map(f => f.trim().toLowerCase());
   const allowed: string[] = [];
-  if (fmts.includes('docx') || fmts.includes('doc'))  allowed.push(...WORD_MIMES);
-  if (fmts.includes('pptx') || fmts.includes('ppt'))  allowed.push(...PPT_MIMES);
-  if (fmts.includes('pdf'))                            allowed.push(...PDF_MIMES);
+  if (fmts.includes('docx') || fmts.includes('doc')) allowed.push(...WORD_MIMES);
+  if (fmts.includes('pptx') || fmts.includes('ppt')) allowed.push(...PPT_MIMES);
+  if (fmts.includes('pdf')) allowed.push(...PDF_MIMES);
   return allowed.includes(file.type);
 }
 
 export default function Submit() {
   useScrollToTop(); // Scroll automático al principio de la página
-  const [step, setStep]           = useState<Step>('info');
+  const [step, setStep] = useState<Step>('info');
   /** Archivos por tipo de producto: clave = productTypeId */
   const [productFiles, setProductFiles] = useState<Record<string, File | null>>({});
   const [authorPhotos, setAuthorPhotos] = useState<(File | null)[]>([null, null, null, null]);
@@ -318,16 +318,16 @@ export default function Submit() {
     defaultValues: {
       eventId: '00000000-0000-0000-0000-000000000000',
       productTypeIds: [],
-      authors: [{ 
-        fullName: '', 
-        academicTitle: '', 
+      authors: [{
+        fullName: '',
+        academicTitle: '',
         emailType: '',
-        email: '', 
-        orcid: '', 
-        identityDocType: '', 
+        email: '',
+        orcid: '',
+        identityDocType: '',
         identityDocNumber: '',
-        isCorresponding: true, 
-        authorOrder: 0 
+        isCorresponding: true,
+        authorOrder: 0
       }],
     },
   });
@@ -342,7 +342,7 @@ export default function Submit() {
 
   const handleNext = async () => {
     const fieldsToValidate: Record<Step, (keyof FormValues)[]> = {
-      info:    ['thematicAxisId', 'productTypeIds', 'titleEs', 'abstractEs', 'countryId'],
+      info: ['thematicAxisId', 'productTypeIds', 'titleEs', 'abstractEs', 'countryId'],
       authors: ['authors'],
       content: [],
       confirm: [],
@@ -447,9 +447,8 @@ export default function Submit() {
         <div className="flex items-center justify-center mb-8 overflow-x-auto">
           {STEPS.map((s, i) => (
             <div key={s.key} className="flex items-center">
-              <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${
-                i <= stepIndex ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-500'
-              }`}>
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${i <= stepIndex ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-500'
+                }`}>
                 {s.icon}{s.label}
               </div>
               {i < STEPS.length - 1 && (
@@ -579,17 +578,17 @@ export default function Submit() {
                   {fields.length < 4 && (
                     <button
                       type="button"
-                      onClick={() => append({ 
-        fullName: '', 
-        academicTitle: '', 
-        emailType: '',
-        email: '', 
-        orcid: '', 
-        identityDocType: '', 
-        identityDocNumber: '',
-        isCorresponding: false, 
-        authorOrder: fields.length 
-      })}
+                      onClick={() => append({
+                        fullName: '',
+                        academicTitle: '',
+                        emailType: '',
+                        email: '',
+                        orcid: '',
+                        identityDocType: '',
+                        identityDocNumber: '',
+                        isCorresponding: false,
+                        authorOrder: fields.length
+                      })}
                       className="btn-outline btn-sm flex items-center gap-1"
                     >
                       <Plus size={16} /> Agregar Autor
@@ -774,10 +773,10 @@ export default function Submit() {
                       Documentos por Tipo de Producto Científico (máx. 20 MB c/u)
                     </label>
                     {selectedProductTypeIds.map((ptId) => {
-                      const pt    = productTypes?.find(p => p.id === ptId);
+                      const pt = productTypes?.find(p => p.id === ptId);
                       const ptFile = productFiles[ptId] ?? null;
                       const accept = getAcceptForFormats(pt?.allowedFileFormats);
-                      const label  = getFormatLabel(pt?.allowedFileFormats);
+                      const label = getFormatLabel(pt?.allowedFileFormats);
                       const inputId = `productFile_${ptId}`;
                       return (
                         <div key={ptId} className="border border-gray-200 rounded-xl p-4">
@@ -940,20 +939,20 @@ export default function Submit() {
                   if (prev >= 0) setStep(order[prev]);
                 }}
                 disabled={step === 'info'}
-                className="btn-outline disabled:opacity-40"
+                className="btn-outline disabled:opacity-40 cursor-pointer"
               >
                 Anterior
               </button>
 
               {step !== 'confirm' ? (
-                <button type="button" onClick={handleNext} className="btn-primary">
+                <button type="button" onClick={handleNext} className="btn-primary cursor-pointer text-white">
                   Siguiente
                 </button>
               ) : (
                 <button
                   type="button"
                   disabled={isSubmitting}
-                  className="btn-primary"
+                  className="btn-primary cursor-pointer text-white"
                   onClick={handleSubmit(onSubmit, (validationErrors) => {
                     console.error('[Submit] errores de validación Zod:', validationErrors);
                     toast.error('Hay campos inválidos. Revise el formulario.');

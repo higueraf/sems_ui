@@ -71,17 +71,17 @@ export default function CheckStatus() {
                 <Mail size={22} />
               </div>
               <div>
-                <h2 className={`font-heading font-bold text-lg ${heading}`}>Buscar por correo</h2>
-                <p className={`text-sm ${textMut}`}>Ingrese el email del autor de correspondencia</p>
+                <h2 className={`font-heading font-bold text-lg ${heading}`}>Buscar por correo o código</h2>
+                <p className={`text-sm ${textMut}`}>Ingrese el email del autor de correspondencia o el código de referencia</p>
               </div>
             </div>
 
             <form onSubmit={handleSubmit(onSearch)}>
               <div className="flex gap-3">
                 <input
-                  type="email"
+                  type="text"
                   className={`flex-1 px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all ${input}`}
-                  placeholder="correo@institución.edu"
+                  placeholder="correo@institución.edu o SEMS-2024-0001"
                   {...register('email', { required: true })}
                 />
                 <button
