@@ -25,11 +25,22 @@ export default function CheckStatus() {
   const input  = isDark ? 'bg-gray-800 border-white/15 text-gray-100 placeholder-gray-500 focus:border-primary-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-primary-400';
 
   const onSearch = async (data: { email: string }) => {
+    const query = data.email.trim();
     setIsLoading(true);
     try {
-      const subs = await submissionsApi.checkByEmail(data.email);
+      const isCode = /^SEMS-\d{4}-\d+$/i.test(query);
+      const subs = isCode
+        ? await submissionsApi.checkByCode(query.toUpperCase())
+        : await submissionsApi.checkByEmail(query);
       setResults(subs);
-      if (subs.length === 0) toast('No se encontraron postulaciones con ese correo', { icon: 'ℹ️' });
+      if (subs.length === 0) {
+        toast(
+          isCode
+            ? 'No se encontró ninguna postulación con ese código de referencia'
+            : 'No se encontraron postulaciones con ese correo electrónico',
+          { icon: 'ℹ️' },
+        );
+      }
     } catch {
       toast.error('Error al buscar postulaciones');
     } finally {
@@ -124,8 +135,8 @@ export default function CheckStatus() {
                 <Search size={28} className={textMut} />
               </div>
               <h3 className={`font-heading font-bold text-lg mb-2 ${heading}`}>Sin resultados</h3>
-              <p className={`text-sm ${textMut}`}>No se encontraron postulaciones para ese correo electrónico.</p>
-              <p className={`text-xs mt-2 ${textMut}`}>Verifique que ingresó correctamente el email del autor de correspondencia.</p>
+              <p className={`text-sm ${textMut}`}>No se encontraron postulaciones para ese correo o código.</p>
+              <p className={`text-xs mt-2 ${textMut}`}>Verifique que ingresó correctamente el email del autor de correspondencia o el código de referencia (SEMS-YYYY-XXXX).</p>
             </div>
           )}
 

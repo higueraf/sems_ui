@@ -302,9 +302,17 @@ export interface AgendaSlot {
   speakerNotified: boolean;
 }
 
+export interface SubmissionStatsByProductType {
+  productTypeId: string;
+  productTypeName: string;
+  total: number;
+  byStatus: Record<SubmissionStatus, number>;
+}
+
 export interface SubmissionStats {
   total: number;
   byStatus: Record<SubmissionStatus, number>;
+  byProductType: SubmissionStatsByProductType[];
 }
 
 export interface PaginatedResponse<T> {

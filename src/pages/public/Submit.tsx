@@ -397,9 +397,20 @@ export default function Submit() {
       const result = await submissionsApi.create(formData);
       setSubmitted({ referenceCode: result.referenceCode });
     } catch (err: any) {
-      const msg = err?.response?.data?.message;
-      if (Array.isArray(msg)) toast.error(msg.join(' | '));
-      else toast.error(msg || 'Error al enviar la postulación');
+      const status = err?.response?.status;
+      const msg    = err?.response?.data?.message;
+
+      if (!err?.response) {
+        toast.error('Sin conexión con el servidor. Verifique su conexión e intente de nuevo.');
+      } else if (status === 413) {
+        toast.error('El archivo es demasiado grande para el servidor. Reduzca el tamaño del archivo e intente de nuevo.');
+      } else if (Array.isArray(msg)) {
+        toast.error(msg.join(' | '));
+      } else if (typeof msg === 'string' && msg) {
+        toast.error(msg);
+      } else {
+        toast.error('Error al enviar la postulación. Intente de nuevo más tarde.');
+      }
       console.error('[Submit] error:', err?.response?.data ?? err);
     } finally {
       setIsSubmitting(false);

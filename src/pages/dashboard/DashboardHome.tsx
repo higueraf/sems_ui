@@ -3,8 +3,9 @@ import { FileText, CheckCircle, Clock, XCircle, Star, CalendarDays, Users } from
 import { eventsApi } from '../../api/events.api';
 import { submissionsApi } from '../../api/submissions.api';
 import { useAuthStore } from '../../store/auth.store';
-import { formatDate } from '../../utils';
+import { formatDate, STATUS_CONFIG } from '../../utils';
 import { Link } from 'react-router-dom';
+import { SubmissionStatsByProductType } from '../../types';
 
 export default function DashboardHome() {
   const { user } = useAuthStore();
@@ -81,6 +82,61 @@ export default function DashboardHome() {
           </Link>
         ))}
       </div>
+
+      {/* Stats por tipo de producción científica */}
+      {stats?.byProductType && stats.byProductType.length > 0 && (
+        <div>
+          <h2 className="font-heading font-semibold text-gray-800 text-base mb-3">
+            Evaluación por tipo de producción científica
+          </h2>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Tipo de producción</th>
+                  <th className="text-center px-3 py-3 font-semibold text-gray-500">Total</th>
+                  {['received','under_review','revision_requested','approved','rejected','scheduled','withdrawn'].map((s) => (
+                    <th key={s} className="text-center px-3 py-3">
+                      <span className={`badge text-xs ${STATUS_CONFIG[s]?.bgColor ?? 'bg-gray-100'} ${STATUS_CONFIG[s]?.textColor ?? 'text-gray-600'}`}>
+                        {STATUS_CONFIG[s]?.label ?? s}
+                      </span>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {stats.byProductType.map((pt: SubmissionStatsByProductType) => (
+                  <tr key={pt.productTypeId} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 font-medium text-gray-900">
+                      <Link
+                        to={`/dashboard/postulaciones?productTypeId=${pt.productTypeId}`}
+                        className="hover:text-primary-600 hover:underline"
+                      >
+                        {pt.productTypeName}
+                      </Link>
+                    </td>
+                    <td className="text-center px-3 py-3 font-bold text-gray-800">{pt.total}</td>
+                    {['received','under_review','revision_requested','approved','rejected','scheduled','withdrawn'].map((s) => (
+                      <td key={s} className="text-center px-3 py-3 text-gray-600">
+                        {pt.byStatus[s] ? (
+                          <Link
+                            to={`/dashboard/postulaciones?productTypeId=${pt.productTypeId}&status=${s}`}
+                            className="font-semibold hover:text-primary-600"
+                          >
+                            {pt.byStatus[s]}
+                          </Link>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

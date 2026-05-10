@@ -5,6 +5,7 @@ interface SubmissionFilters {
   eventId?: string;
   status?: string;
   thematicAxisId?: string;
+  productTypeId?: string;
   search?: string;
 }
 
@@ -17,6 +18,9 @@ export const submissionsApi = {
 
   checkByEmail: (email: string) =>
     api.get<Submission[]>(`/submissions/check/${email}`).then((r) => r.data),
+
+  checkByCode: (referenceCode: string) =>
+    api.get<Submission[]>(`/submissions/check-code/${encodeURIComponent(referenceCode)}`).then((r) => r.data),
 
   // ── Admin ──────────────────────────────────────────────────────────────────
   getAll: (filters: SubmissionFilters) =>

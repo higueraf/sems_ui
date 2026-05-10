@@ -8,7 +8,7 @@ import {
 import RichTextEditor from '../../components/ui/RichTextEditor';
 import { eventsApi } from '../../api/events.api';
 import { submissionsApi } from '../../api/submissions.api';
-import { thematicAxesApi } from '../../api/index';
+import { thematicAxesApi, productTypesApi } from '../../api/index';
 import { Submission } from '../../types';
 import { STATUS_CONFIG, formatDate } from '../../utils';
 
@@ -242,6 +242,7 @@ export default function Submissions() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState(params.get('status') || '');
   const [axisId, setAxisId] = useState('');
+  const [productTypeId, setProductTypeId] = useState(params.get('productTypeId') || '');
   const [showBulkModal, setShowBulkModal] = useState(false);
 
   const { data: event } = useQuery({ queryKey: ['event-active'], queryFn: eventsApi.getActive });
@@ -250,13 +251,18 @@ export default function Submissions() {
     queryFn: () => thematicAxesApi.getAll(event!.id),
     enabled: !!event?.id,
   });
+  const { data: productTypes } = useQuery({
+    queryKey: ['product-types'],
+    queryFn: () => productTypesApi.getAll(true),
+  });
   const { data: submissions, isLoading } = useQuery({
-    queryKey: ['submissions', event?.id, status, axisId, search],
+    queryKey: ['submissions', event?.id, status, axisId, productTypeId, search],
     queryFn: () =>
       submissionsApi.getAll({
         eventId: event?.id,
         status: status || undefined,
         thematicAxisId: axisId || undefined,
+        productTypeId: productTypeId || undefined,
         search: search || undefined,
       }),
     enabled: !!event?.id,
@@ -300,7 +306,7 @@ export default function Submissions() {
 
       {/* Filters */}
       <div className="card !p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -320,6 +326,19 @@ export default function Submissions() {
             >
               {STATUS_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          </div>
+          <div className="relative">
+            <select
+              value={productTypeId}
+              onChange={(e) => setProductTypeId(e.target.value)}
+              className="form-input py-2.5 text-sm appearance-none"
+            >
+              <option value="">Todos los tipos de producción</option>
+              {productTypes?.map((pt) => (
+                <option key={pt.id} value={pt.id}>{pt.name}</option>
               ))}
             </select>
             <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
