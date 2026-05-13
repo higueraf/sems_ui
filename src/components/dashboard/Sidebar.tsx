@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FileText, Calendar, Settings, Globe, Users, BookOpen,
-  Sliders, LogOut, X, Tag, Layout, Cpu, ExternalLink,
+  Sliders, LogOut, X, Tag, Layout, Cpu, ExternalLink, Award,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import { cn } from '../../utils';
@@ -13,6 +13,7 @@ const mainLinks = [
 ];
 
 const adminLinks = [
+  { to: '/dashboard/certificados', label: 'Certificados', icon: Award },
   { to: '/dashboard/eventos', label: 'Eventos', icon: Settings },
   { to: '/dashboard/ejes-tematicos', label: 'Ejes Temáticos', icon: Tag },
   { to: '/dashboard/tipos-producto', label: 'Tipos de Producto', icon: Cpu },

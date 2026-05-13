@@ -39,18 +39,24 @@ function SlotCard({ slot, isDark }: { slot: AgendaSlot; isDark: boolean }) {
   const divLine  = isDark ? 'bg-gray-600' : 'bg-gray-200';
   const typeBadge = isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600';
 
-  const titleText = slot.submission?.titleEs || slot.title || '';
-  const speakerText = slot.speakerName || slot.submission?.authors?.find((a) => a.isCorresponding)?.fullName;
-  const affiliation = slot.speakerAffiliation || slot.submission?.authors?.[0]?.affiliation;
+  const titleText    = slot.submission?.titleEs || slot.title || '';
+  const mainAuthor   = slot.submission?.authors?.find((a) => a.isCorresponding) ?? slot.submission?.authors?.[0];
+  const speakerName  = slot.speakerName  || mainAuthor?.fullName;
+  const speakerPhoto = mainAuthor?.photoUrl;
+  const affiliation  = slot.speakerAffiliation || mainAuthor?.affiliation;
+  const flagEmoji    = mainAuthor?.country?.flagEmoji;
 
   return (
     <div className={`border-l-4 ${colorClass} rounded-r-xl shadow-sm p-4 hover:shadow-md transition-shadow`}>
       <div className="flex items-start gap-3">
+        {/* Hora */}
         <div className="text-center min-w-[60px]">
           <p className={`text-xs font-medium ${textFade}`}>{formatTime(slot.startTime)}</p>
           <div className={`w-px h-4 ${divLine} mx-auto my-1`} />
           <p className={`text-xs font-medium ${textFade}`}>{formatTime(slot.endTime)}</p>
         </div>
+
+        {/* Contenido */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className={`badge text-xs ${typeBadge}`}>
@@ -66,31 +72,39 @@ function SlotCard({ slot, isDark }: { slot: AgendaSlot; isDark: boolean }) {
             )}
           </div>
           {titleText && (
-            <h4 className={`font-semibold text-sm leading-tight mb-1 ${titleClr}`}>{titleText}</h4>
+            <h4 className={`font-semibold text-sm leading-tight mb-2 ${titleClr}`}>{titleText}</h4>
           )}
-          <div className="flex flex-wrap gap-3 mt-2">
-            {speakerText && (
-              <div className={`flex items-center gap-1 text-xs ${textMut}`}>
-                <User size={12} />
-                <span>
-                  {speakerText}
-                  {slot.submission?.authors?.find((a) => a.isCorresponding)?.country?.flagEmoji && (
-                    <span className="ml-1">
-                      {slot.submission?.authors?.find((a) => a.isCorresponding)?.country?.flagEmoji}
-                    </span>
-                  )}
-                </span>
+
+          {/* Speaker row con foto */}
+          {speakerName && (
+            <div className="flex items-center gap-2 mt-2">
+              {speakerPhoto ? (
+                <img
+                  src={speakerPhoto}
+                  alt={speakerName}
+                  className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-gray-200"
+                />
+              ) : (
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                  <User size={14} className={textMut} />
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className={`text-xs font-semibold truncate ${titleClr}`}>
+                  {speakerName}{flagEmoji && <span className="ml-1">{flagEmoji}</span>}
+                </p>
+                {affiliation && (
+                  <p className={`text-xs truncate ${textFade}`}>{affiliation}</p>
+                )}
               </div>
-            )}
-            {affiliation && (
-              <div className={`text-xs ${textFade}`}>{affiliation}</div>
-            )}
-            {slot.room && (
-              <div className={`flex items-center gap-1 text-xs ${textMut}`}>
-                <MapPin size={12} /> {slot.room}
-              </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {slot.room && (
+            <div className={`flex items-center gap-1 text-xs mt-2 ${textMut}`}>
+              <MapPin size={12} /> {slot.room}
+            </div>
+          )}
         </div>
       </div>
     </div>

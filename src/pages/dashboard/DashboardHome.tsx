@@ -5,7 +5,7 @@ import { submissionsApi } from '../../api/submissions.api';
 import { useAuthStore } from '../../store/auth.store';
 import { formatDate, STATUS_CONFIG } from '../../utils';
 import { Link } from 'react-router-dom';
-import { SubmissionStatsByProductType } from '../../types';
+import { SubmissionStatsByProductType, SubmissionStatus } from '../../types';
 
 export default function DashboardHome() {
   const { user } = useAuthStore();
@@ -97,8 +97,8 @@ export default function DashboardHome() {
                   <th className="text-center px-3 py-3 font-semibold text-gray-500">Total</th>
                   {['received','under_review','revision_requested','approved','rejected','scheduled','withdrawn'].map((s) => (
                     <th key={s} className="text-center px-3 py-3">
-                      <span className={`badge text-xs ${STATUS_CONFIG[s]?.bgColor ?? 'bg-gray-100'} ${STATUS_CONFIG[s]?.textColor ?? 'text-gray-600'}`}>
-                        {STATUS_CONFIG[s]?.label ?? s}
+                      <span className={`badge text-xs ${STATUS_CONFIG[s as SubmissionStatus]?.bgColor ?? 'bg-gray-100'} ${STATUS_CONFIG[s as SubmissionStatus]?.textColor ?? 'text-gray-600'}`}>
+                        {STATUS_CONFIG[s as SubmissionStatus]?.label ?? s}
                       </span>
                     </th>
                   ))}
@@ -118,12 +118,12 @@ export default function DashboardHome() {
                     <td className="text-center px-3 py-3 font-bold text-gray-800">{pt.total}</td>
                     {['received','under_review','revision_requested','approved','rejected','scheduled','withdrawn'].map((s) => (
                       <td key={s} className="text-center px-3 py-3 text-gray-600">
-                        {pt.byStatus[s] ? (
+                        {pt.byStatus[s as SubmissionStatus] ? (
                           <Link
                             to={`/dashboard/postulaciones?productTypeId=${pt.productTypeId}&status=${s}`}
                             className="font-semibold hover:text-primary-600"
                           >
-                            {pt.byStatus[s]}
+                            {pt.byStatus[s as SubmissionStatus]}
                           </Link>
                         ) : (
                           <span className="text-gray-300">—</span>

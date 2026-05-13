@@ -32,6 +32,8 @@ import ThematicAxesAdmin from './pages/dashboard/ThematicAxesAdmin';
 import ProductTypesAdmin from './pages/dashboard/ProductTypesAdmin';
 import PageSectionsAdmin from './pages/dashboard/PageSectionsAdmin';
 import UsersAdmin from './pages/dashboard/UsersAdmin';
+import CertificatesAdmin from './pages/dashboard/CertificatesAdmin';
+import CertificateVerification from './pages/public/CertificateVerification';
 
 /**
  * Ruta protegida.
@@ -84,6 +86,7 @@ export default function App() {
             <Route path="/simposios" element={<PreviousEvents />} />
             <Route path="/talleres" element={<Workshops />} />
             <Route path="/verificar" element={<CheckStatus />} />
+            <Route path="/certificado/:code" element={<CertificateVerification />} />
           </Route>
 
           {/* Dashboard */}
@@ -161,6 +164,14 @@ export default function App() {
               element={
                 <PrivateRoute adminOnly>
                   <UsersAdmin />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="certificados"
+              element={
+                <PrivateRoute adminOnly>
+                  <CertificatesAdmin />
                 </PrivateRoute>
               }
             />

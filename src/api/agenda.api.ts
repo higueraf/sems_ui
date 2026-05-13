@@ -30,5 +30,5 @@ export const agendaApi = {
     api.patch(`/agenda/${id}/unpublish`).then((r) => r.data),
 
   publishAll: (eventId: string) =>
-    api.patch('/agenda/publish-all', null, { params: { eventId } }).then((r) => r.data),
+    api.patch('/agenda/publish-all', {}, { params: { eventId } }).then((r) => r.data),
 };

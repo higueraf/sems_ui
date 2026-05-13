@@ -63,6 +63,7 @@ export interface ScientificEvent {
   maxPresentations?: number;
   isActive: boolean;
   isAgendaPublished: boolean;
+  rooms?: string[];
   submissionDeadline?: string;
   reviewDeadline?: string;
   contactEmail?: string;
@@ -184,7 +185,8 @@ export interface ScientificProductType {
 
 export type SubmissionStatus =
   | 'received' | 'under_review' | 'revision_requested'
-  | 'approved' | 'rejected' | 'withdrawn' | 'scheduled';
+  | 'approved' | 'rejected' | 'withdrawn' | 'scheduled'
+  | 'executed' | 'certificate_sent';
 
 export type SubmissionFileType = 'manuscript' | 'correction' | 'final';
 
@@ -238,6 +240,8 @@ export interface SubmissionStatusHistory {
   internalNotes?: string;
   changedBy?: User;
   notifiedApplicant: boolean;
+  /** Cuando está seteado, este registro es para un tipo de producto específico */
+  productTypeId?: string;
   createdAt: string;
 }
 
@@ -249,6 +253,8 @@ export interface Submission {
   productType: ScientificProductType;
   /** IDs de todos los tipos de producto seleccionados */
   productTypeIds?: string[];
+  /** Estatus independiente por tipo de producto: { [productTypeId]: SubmissionStatus } */
+  productStatuses?: Record<string, SubmissionStatus>;
   titleEs: string;
   titleEn?: string;
   abstractEs: string;
@@ -320,6 +326,25 @@ export interface PaginatedResponse<T> {
   total: number;
   page: number;
   limit: number;
+}
+
+export interface Certificate {
+  id: string;
+  certificateNumber: string;
+  submissionId: string;
+  submission?: Pick<Submission, 'id' | 'referenceCode' | 'titleEs' | 'eventId'>;
+  authorId: string;
+  author?: Pick<SubmissionAuthor, 'id' | 'fullName' | 'email' | 'isCorresponding'>;
+  productTypeId?: string;
+  productType?: Pick<ScientificProductType, 'id' | 'name'>;
+  productTypeName?: string;
+  verificationCode: string;
+  fileUrl?: string;
+  fileName?: string;
+  issuedAt: string;
+  emailSentAt?: string;
+  eventId?: string;
+  createdAt: string;
 }
 
 export interface ApiError {
