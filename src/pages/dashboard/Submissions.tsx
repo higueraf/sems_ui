@@ -236,6 +236,7 @@ function BulkEmailModal({
   );
 }
 
+
 // ─── Página principal ─────────────────────────────────────────────────────────
 export default function Submissions() {
   const [params] = useSearchParams();
@@ -244,6 +245,8 @@ export default function Submissions() {
   const [axisId, setAxisId] = useState('');
   const [productTypeId, setProductTypeId] = useState(params.get('productTypeId') || '');
   const [showBulkModal, setShowBulkModal] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const { data: event } = useQuery({ queryKey: ['event-active'], queryFn: eventsApi.getActive });
   const { data: axes } = useQuery({
@@ -275,6 +278,11 @@ export default function Submissions() {
     enabled: !!event?.id,
   });
 
+  const totalPages = Math.max(1, Math.ceil((submissions?.length ?? 0) / pageSize));
+  const submissionsPage = submissions?.slice((page - 1) * pageSize, page * pageSize) ?? [];
+
+  const handleFilterChange = (fn: () => void) => { fn(); setPage(1); };
+
   return (
     <div className="space-y-5">
       {/* Modal de envío masivo */}
@@ -299,7 +307,7 @@ export default function Submissions() {
             <span className="hidden sm:inline">Correo masivo</span>
           </button>
           <span className="badge bg-blue-100 text-blue-700 text-sm">
-            {submissions?.length ?? 0} registros
+            {submissions?.length ?? 0} {(submissions?.length ?? 0) === 1 ? 'registro' : 'registros'}
           </span>
         </div>
       </div>
@@ -313,7 +321,7 @@ export default function Submissions() {
               type="text"
               placeholder="Buscar por título, código, autor..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => handleFilterChange(() => setSearch(e.target.value))}
               className="form-input pl-9 py-2.5 text-sm"
             />
           </div>
@@ -321,7 +329,7 @@ export default function Submissions() {
             <Filter size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <select
               value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              onChange={(e) => handleFilterChange(() => setStatus(e.target.value))}
               className="form-input pl-9 py-2.5 text-sm appearance-none"
             >
               {STATUS_OPTIONS.map((opt) => (
@@ -333,7 +341,7 @@ export default function Submissions() {
           <div className="relative">
             <select
               value={productTypeId}
-              onChange={(e) => setProductTypeId(e.target.value)}
+              onChange={(e) => handleFilterChange(() => setProductTypeId(e.target.value))}
               className="form-input py-2.5 text-sm appearance-none"
             >
               <option value="">Todos los tipos de producción</option>
@@ -346,7 +354,7 @@ export default function Submissions() {
           <div className="relative">
             <select
               value={axisId}
-              onChange={(e) => setAxisId(e.target.value)}
+              onChange={(e) => handleFilterChange(() => setAxisId(e.target.value))}
               className="form-input py-2.5 text-sm appearance-none"
             >
               <option value="">Todos los ejes</option>
@@ -364,6 +372,7 @@ export default function Submissions() {
         {isLoading ? (
           <div className="p-8 text-center text-gray-400">Cargando...</div>
         ) : (
+          <>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -378,14 +387,14 @@ export default function Submissions() {
                 </tr>
               </thead>
               <tbody>
-                {submissions?.length === 0 ? (
+                {submissionsPage.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="table-td text-center text-gray-400 py-10">
                       No se encontraron postulaciones
                     </td>
                   </tr>
                 ) : (
-                  submissions?.map((sub: Submission) => {
+                  submissionsPage.map((sub: Submission) => {
                     const cfg = STATUS_CONFIG[sub.status];
                     const corresponding = sub.authors.find((a) => a.isCorresponding) || sub.authors[0];
                     return (
@@ -443,6 +452,54 @@ export default function Submissions() {
               </tbody>
             </table>
           </div>
+          {/* Pagination */}
+          {(submissions?.length ?? 0) > 0 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+              <div className="flex items-center gap-3">
+                <p className="text-xs text-gray-400">
+                  Mostrando {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, submissions?.length ?? 0)} de {submissions?.length ?? 0}
+                </p>
+                <select
+                  value={pageSize}
+                  onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+                  className="text-xs border border-gray-200 rounded-lg px-2 py-1 text-gray-600 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                >
+                  {[20, 30, 40, 50].map((n) => (
+                    <option key={n} value={n}>{n} por página</option>
+                  ))}
+                </select>
+              </div>
+              {totalPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setPage(page - 1)} disabled={page === 1}
+                    className="px-2.5 py-1.5 rounded-lg text-sm text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed">‹</button>
+                  {(() => {
+                    const pages: (number | '...')[] = [];
+                    if (totalPages <= 7) {
+                      for (let i = 1; i <= totalPages; i++) pages.push(i);
+                    } else {
+                      pages.push(1);
+                      if (page > 3) pages.push('...');
+                      for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) pages.push(i);
+                      if (page < totalPages - 2) pages.push('...');
+                      pages.push(totalPages);
+                    }
+                    return pages.map((p, i) =>
+                      p === '...'
+                        ? <span key={`d${i}`} className="px-1.5 text-gray-400 text-sm">…</span>
+                        : <button key={p} onClick={() => setPage(p as number)}
+                            className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${page === p ? 'bg-primary-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'}`}>
+                            {p}
+                          </button>
+                    );
+                  })()}
+                  <button onClick={() => setPage(page + 1)} disabled={page === totalPages}
+                    className="px-2.5 py-1.5 rounded-lg text-sm text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed">›</button>
+                </div>
+              )}
+            </div>
+          )}
+          </>
         )}
       </div>
     </div>
