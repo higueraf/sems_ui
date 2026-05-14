@@ -17,8 +17,8 @@ export const agendaApi = {
   update: (id: string, data: Partial<AgendaSlot>) =>
     api.patch<AgendaSlot>(`/agenda/${id}`, data).then((r) => r.data),
 
-  remove: (id: string) =>
-    api.delete(`/agenda/${id}`).then((r) => r.data),
+  remove: (id: string, body: { reason: string; revertStatus?: string }) =>
+    api.delete(`/agenda/${id}`, { data: body }).then((r) => r.data),
 
   reorder: (orderedIds: string[]) =>
     api.patch('/agenda/reorder', { orderedIds }).then((r) => r.data),

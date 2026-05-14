@@ -256,7 +256,7 @@ function SubmissionSearchPanel({
         {filtered.map((s) => {
           const author = s.authors?.find((a) => a.isCorresponding) ?? s.authors?.[0];
           const isSelected = selectedId === s.id;
-          const isReview = s.status === 'under_review';
+          const isScheduled = s.status === 'scheduled';
 
           return (
             <button
@@ -286,8 +286,8 @@ function SubmissionSearchPanel({
                     {author?.country?.flagEmoji && (
                       <span className="text-sm">{author.country.flagEmoji}</span>
                     )}
-                    {isReview ? (
-                      <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">En revisión</span>
+                    {isScheduled ? (
+                      <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium">Agendada</span>
                     ) : (
                       <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-medium">Aprobada</span>
                     )}
@@ -351,6 +351,81 @@ function Pagination({ page, total, onChange }: { page: number; total: number; on
       )}
       <button onClick={() => onChange(page + 1)} disabled={page === total}
         className="px-2.5 py-1.5 rounded-lg text-sm text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed">›</button>
+    </div>
+  );
+}
+
+// ── DeleteSlotModal ───────────────────────────────────────────────────────────
+const REVERT_STATUS_OPTIONS = [
+  { value: 'approved', label: 'Aprobada' },
+  { value: 'under_review', label: 'En revisión' },
+];
+
+function DeleteSlotModal({
+  slot,
+  onConfirm,
+  onCancel,
+  isPending,
+}: {
+  slot: AgendaSlot;
+  onConfirm: (reason: string, revertStatus: string) => void;
+  onCancel: () => void;
+  isPending: boolean;
+}) {
+  const [reason, setReason] = useState('');
+  const [revertStatus, setRevertStatus] = useState('approved');
+  const hasSubmission = !!slot.submissionId;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="font-heading font-bold text-lg text-gray-900">Eliminar Bloque</h3>
+          <button onClick={onCancel} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+        </div>
+        <div className="p-5 space-y-4">
+          <p className="text-sm text-gray-600">
+            ¿Estás seguro de eliminar este bloque?{' '}
+            {hasSubmission && <span className="font-medium text-gray-800">La ponencia asociada volverá al estado seleccionado.</span>}
+          </p>
+
+          <div>
+            <label className="form-label">Motivo de eliminación *</label>
+            <textarea
+              className="form-input resize-none"
+              rows={3}
+              placeholder="Describe el motivo…"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </div>
+
+          {hasSubmission && (
+            <div>
+              <label className="form-label">Cambiar estado de la ponencia a</label>
+              <select
+                className="form-input"
+                value={revertStatus}
+                onChange={(e) => setRevertStatus(e.target.value)}
+              >
+                {REVERT_STATUS_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+        <div className="p-5 border-t border-gray-100 flex justify-end gap-3">
+          <button onClick={onCancel} className="btn-outline btn-sm">Cancelar</button>
+          <button
+            onClick={() => onConfirm(reason, revertStatus)}
+            disabled={!reason.trim() || isPending}
+            className="btn-sm bg-red-600 text-white hover:bg-red-700 rounded-xl px-4 py-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isPending ? 'Eliminando…' : 'Eliminar'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -579,6 +654,7 @@ export default function AgendaBuilder() {
   const [editingSlot, setEditingSlot] = useState<AgendaSlot | null>(null);
   const [form, setForm] = useState<SlotForm>(EMPTY_FORM);
   const [page, setPage] = useState(1);
+  const [deleteTarget, setDeleteTarget] = useState<AgendaSlot | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -670,19 +746,26 @@ export default function AgendaBuilder() {
   const rooms = event?.rooms ?? [];
 
   // Mutations
+  const invalidateAgenda = () => {
+    qc.invalidateQueries({ queryKey: ['agenda-all'] });
+    qc.invalidateQueries({ queryKey: ['agenda-eligible'] });
+  };
+
   const createMutation = useMutation({
     mutationFn: (data: Partial<AgendaSlot>) => agendaApi.create(data),
-    onSuccess: () => { toast.success('Bloque creado'); qc.invalidateQueries({ queryKey: ['agenda-all'] }); closeForm(); },
+    onSuccess: () => { toast.success('Bloque creado'); invalidateAgenda(); closeForm(); },
     onError: () => toast.error('Error al crear bloque'),
   });
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<AgendaSlot> }) => agendaApi.update(id, data),
-    onSuccess: () => { toast.success('Bloque actualizado'); qc.invalidateQueries({ queryKey: ['agenda-all'] }); closeForm(); },
+    onSuccess: () => { toast.success('Bloque actualizado'); invalidateAgenda(); closeForm(); },
     onError: () => toast.error('Error al actualizar'),
   });
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => agendaApi.remove(id),
-    onSuccess: () => { toast.success('Bloque eliminado'); qc.invalidateQueries({ queryKey: ['agenda-all'] }); },
+    mutationFn: ({ id, reason, revertStatus }: { id: string; reason: string; revertStatus: string }) =>
+      agendaApi.remove(id, { reason, revertStatus }),
+    onSuccess: () => { toast.success('Bloque eliminado'); invalidateAgenda(); setDeleteTarget(null); },
+    onError: () => toast.error('Error al eliminar bloque'),
   });
   const publishMutation = useMutation({
     mutationFn: ({ id, publish }: { id: string; publish: boolean }) =>
@@ -755,8 +838,29 @@ export default function AgendaBuilder() {
 
   const isPresentationType = form.type === 'presentation' || form.type === 'keynote';
 
+  // When editing a slot, its submission is already "scheduled" so it won't appear
+  // in eligibleSubmissions. We inject it back so the panel can show it.
+  const submissionsForPanel = useMemo(() => {
+    if (!editingSlot?.submissionId || !editingSlot.submission) return eligibleSubmissions;
+    const alreadyIn = eligibleSubmissions.some((s) => s.id === editingSlot.submissionId);
+    if (alreadyIn) return eligibleSubmissions;
+    return [editingSlot.submission as Submission, ...eligibleSubmissions];
+  }, [eligibleSubmissions, editingSlot]);
+
   return (
     <div className="space-y-5">
+      {/* ── Modal eliminar bloque ── */}
+      {deleteTarget && (
+        <DeleteSlotModal
+          slot={deleteTarget}
+          isPending={deleteMutation.isPending}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={(reason, revertStatus) =>
+            deleteMutation.mutate({ id: deleteTarget.id, reason, revertStatus })
+          }
+        />
+      )}
+
       {/* ── Header ── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -928,7 +1032,7 @@ export default function AgendaBuilder() {
                   {slotsPage.map((slot) => (
                     <SortableSlot
                       key={slot.id} slot={slot} onEdit={openEdit}
-                      onDelete={(id) => { if (confirm('¿Eliminar este bloque?')) deleteMutation.mutate(id); }}
+                      onDelete={(id) => { const s = slots.find((x) => x.id === id); if (s) setDeleteTarget(s); }}
                       onTogglePublish={(s) => publishMutation.mutate({ id: s.id, publish: !s.isPublished })}
                     />
                   ))}
@@ -941,7 +1045,7 @@ export default function AgendaBuilder() {
               {slotsPage.map((slot) => (
                 <SlotCard
                   key={slot.id} slot={slot} showDate onEdit={openEdit}
-                  onDelete={(id) => { if (confirm('¿Eliminar este bloque?')) deleteMutation.mutate(id); }}
+                  onDelete={(id) => { const s = slots.find((x) => x.id === id); if (s) setDeleteTarget(s); }}
                   onTogglePublish={(s) => publishMutation.mutate({ id: s.id, publish: !s.isPublished })}
                 />
               ))}
@@ -1072,22 +1176,16 @@ export default function AgendaBuilder() {
                   <div className="flex items-center gap-2 mb-2">
                     <label className="form-label mb-0">Ponencia</label>
                     <span className="text-xs text-gray-400">
-                      — {eligibleSubmissions.length} disponibles (aprobadas · en revisión)
+                      — {eligibleSubmissions.length} aprobadas disponibles
                     </span>
                   </div>
                   <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
                     <SubmissionSearchPanel
-                      submissions={eligibleSubmissions}
+                      submissions={submissionsForPanel}
                       selectedId={form.submissionId}
                       onSelect={handleSelectSubmission}
                     />
                   </div>
-                  {form.submissionId &&
-                    eligibleSubmissions.find((s) => s.id === form.submissionId)?.status === 'under_review' && (
-                      <p className="text-xs text-amber-600 mt-1.5 bg-amber-50 rounded-lg px-2.5 py-1.5">
-                        ⚠ Esta ponencia aún no está aprobada. Quedará marcada en la agenda hasta su aprobación.
-                      </p>
-                    )}
                 </div>
               )}
 
