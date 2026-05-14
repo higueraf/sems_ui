@@ -636,13 +636,14 @@ function RoomsSidebar({
 // ── SlotForm types ────────────────────────────────────────────────────────────
 interface SlotForm {
   type: string; day: string; startTime: string; endTime: string;
-  room: string; title: string; submissionId: string; thematicAxisId: string;
-  speakerName: string; speakerAffiliation: string; moderatorName: string; description: string;
+  room: string; title: string; submissionId: string; submissionProductTypeId: string;
+  thematicAxisId: string; speakerName: string; speakerAffiliation: string;
+  moderatorName: string; description: string;
 }
 const EMPTY_FORM: SlotForm = {
   type: 'presentation', day: '', startTime: '', endTime: '', room: '', title: '',
-  submissionId: '', thematicAxisId: '', speakerName: '', speakerAffiliation: '',
-  moderatorName: '', description: '',
+  submissionId: '', submissionProductTypeId: '', thematicAxisId: '',
+  speakerName: '', speakerAffiliation: '', moderatorName: '', description: '',
 };
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -749,6 +750,8 @@ export default function AgendaBuilder() {
   const invalidateAgenda = () => {
     qc.invalidateQueries({ queryKey: ['agenda-all'] });
     qc.invalidateQueries({ queryKey: ['agenda-eligible'] });
+    qc.invalidateQueries({ queryKey: ['submissions'] });
+    qc.invalidateQueries({ queryKey: ['submission'] });
   };
 
   const createMutation = useMutation({
@@ -795,7 +798,9 @@ export default function AgendaBuilder() {
     setForm({
       type: slot.type, day: slot.day.split('T')[0], startTime: slot.startTime,
       endTime: slot.endTime, room: slot.room || '', title: slot.title || '',
-      submissionId: slot.submissionId || '', thematicAxisId: slot.thematicAxisId || '',
+      submissionId: slot.submissionId || '',
+      submissionProductTypeId: (slot as any).submissionProductTypeId || '',
+      thematicAxisId: slot.thematicAxisId || '',
       speakerName: slot.speakerName || '', speakerAffiliation: slot.speakerAffiliation || '',
       moderatorName: slot.moderatorName || '', description: slot.description || '',
     });
@@ -807,6 +812,7 @@ export default function AgendaBuilder() {
       ...form,
       eventId: event!.id,
       submissionId: form.submissionId || undefined,
+      submissionProductTypeId: form.submissionProductTypeId || undefined,
       thematicAxisId: form.thematicAxisId || undefined,
     } as any;
     if (editingSlot) updateMutation.mutate({ id: editingSlot.id, data: payload });
@@ -823,14 +829,18 @@ export default function AgendaBuilder() {
 
   const handleSelectSubmission = (id: string, sub?: Submission) => {
     if (!id) {
-      setForm((prev) => ({ ...prev, submissionId: '' }));
+      setForm((prev) => ({ ...prev, submissionId: '', submissionProductTypeId: '' }));
       return;
     }
     const corrAuthor = sub?.authors?.find((a) => a.isCorresponding) ?? sub?.authors?.[0];
+    // Find the ponencia/comunicación oral product type ID within this submission
+    const ptIds: string[] = (sub as any)?.productTypeIds ?? ((sub as any)?.productTypeId ? [(sub as any).productTypeId] : []);
+    const ponenciaPtId = ptIds.find((ptId) => ponenciaTypeIds.has(ptId)) ?? '';
     setForm((prev) => ({
       ...prev,
       submissionId: id,
-      thematicAxisId: sub?.thematicAxis?.id ?? sub?.thematicAxisId ?? prev.thematicAxisId,
+      submissionProductTypeId: ponenciaPtId,
+      thematicAxisId: sub?.thematicAxis?.id ?? (sub as any)?.thematicAxisId ?? prev.thematicAxisId,
       speakerName: corrAuthor?.fullName ?? prev.speakerName,
       speakerAffiliation: corrAuthor?.affiliation ?? prev.speakerAffiliation,
     }));
