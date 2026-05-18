@@ -12,7 +12,7 @@ import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import {
   Plus, GripVertical, Trash2, Edit2, Check, Eye, EyeOff, Send, DoorOpen, X,
-  Printer, Search, User, MapPin,
+  FileDown, Search, User, MapPin, Mail, MailCheck, MailWarning, RefreshCw,
 } from 'lucide-react';
 import { eventsApi } from '../../api/events.api';
 import { agendaApi } from '../../api/agenda.api';
@@ -37,167 +37,6 @@ const SLOT_TYPE_BADGE: Record<string, string> = {
   workshop: 'bg-blue-100 text-blue-700',
   panel: 'bg-purple-100 text-purple-700',
 };
-
-// ── helpers de impresión ─────────────────────────────────────────────────────
-function fmtTimePrint(t: string) { return t?.substring(0, 5) || t; }
-function fmtDayPrint(d: string) {
-  try { return format(parseISO(d), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es }); }
-  catch { return d; }
-}
-
-function printAgenda(slots: AgendaSlot[], eventName: string, selectedDay?: string) {
-  const win = window.open('', '_blank', 'width=1100,height=800');
-  if (!win) return;
-
-  const days = selectedDay
-    ? [selectedDay]
-    : [...new Set(slots.map((s) => s.day.split('T')[0]))].sort();
-
-  const slotsForDay = (day: string) =>
-    slots
-      .filter((s) => s.day.split('T')[0] === day)
-      .sort((a, b) => a.startTime.localeCompare(b.startTime));
-
-  const rowsHtml = (day: string) =>
-    slotsForDay(day)
-      .map((slot) => {
-        const author =
-          slot.submission?.authors?.find((a) => a.isCorresponding) ??
-          slot.submission?.authors?.[0];
-        const name = slot.speakerName || author?.fullName || '';
-        const flag = author?.country?.flagEmoji || '';
-        const affil = slot.speakerAffiliation || author?.affiliation || '';
-        const title = slot.submission?.titleEs || slot.title || '';
-        const photo = author?.photoUrl || '';
-        const axis = slot.thematicAxis || slot.submission?.thematicAxis;
-        const axisColor = axis?.color || '#007F3A';
-
-        return `
-        <tr>
-          <td class="td-time">
-            <span class="t-start">${fmtTimePrint(slot.startTime)}</span>
-            <span class="t-sep">|</span>
-            <span class="t-end">${fmtTimePrint(slot.endTime)}</span>
-          </td>
-          ${slot.room ? `<td class="td-room"><span class="room-tag">${slot.room}</span></td>` : '<td></td>'}
-          <td class="td-content">
-            ${title ? `<p class="p-title">${title}</p>` : ''}
-            ${name ? `
-              <div class="speaker-row">
-                ${photo
-                  ? `<img src="${photo}" class="s-photo" onerror="this.style.display='none'" />`
-                  : `<div class="s-avatar">${name.charAt(0).toUpperCase()}</div>`}
-                <div>
-                  <span class="s-name">${name} ${flag}</span>
-                  ${affil ? `<span class="s-affil">${affil}</span>` : ''}
-                </div>
-              </div>` : ''}
-            ${axis ? `<span class="axis-tag" style="background:${axisColor}">${axis.name}</span>` : ''}
-          </td>
-        </tr>`;
-      })
-      .join('');
-
-  const html = `<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Agenda — ${eventName}</title>
-  <style>
-    @page { size: A4; margin: 18mm 14mm; }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Georgia', serif; color: #111; background: #fff; font-size: 10.5pt; }
-
-    .doc-header {
-      display: flex; align-items: flex-end; justify-content: space-between;
-      border-bottom: 3px solid #007F3A; padding-bottom: 14px; margin-bottom: 26px;
-    }
-    .ev-name { color: #007F3A; font-size: 19pt; font-weight: bold; letter-spacing: -0.3px; }
-    .ev-sub  { font-size: 9pt; color: #888; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; }
-    .print-date { font-size: 8pt; color: #aaa; text-align: right; }
-
-    .day-block { margin-bottom: 26px; page-break-inside: avoid; }
-    .day-hdr {
-      background: #007F3A; color: #fff;
-      padding: 7px 14px; border-radius: 4px;
-      font-size: 11.5pt; font-weight: bold;
-      text-transform: capitalize; margin-bottom: 10px;
-    }
-
-    table { width: 100%; border-collapse: collapse; }
-    tr { border-bottom: 1px solid #f0ece4; }
-    tr:last-child { border-bottom: none; }
-    td { padding: 7px 9px; vertical-align: top; }
-
-    .td-time {
-      width: 70px; color: #007F3A; font-family: 'Courier New', monospace;
-      font-size: 8.5pt; font-weight: bold; white-space: nowrap; text-align: center;
-    }
-    .t-start { display: block; }
-    .t-sep   { display: block; color: #ccc; font-weight: normal; }
-    .t-end   { display: block; }
-
-    .td-room { width: 80px; }
-    .room-tag {
-      display: inline-block; background: #f3f3f3; color: #555;
-      padding: 2px 7px; border-radius: 8px; font-size: 7.5pt;
-    }
-
-    .td-content { }
-    .p-title { font-weight: bold; font-size: 10pt; color: #111; margin-bottom: 5px; line-height: 1.3; }
-
-    .speaker-row { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
-    .s-photo {
-      width: 28px; height: 28px; border-radius: 50%; object-fit: cover;
-      border: 1.5px solid #dde; flex-shrink: 0;
-    }
-    .s-avatar {
-      width: 28px; height: 28px; border-radius: 50%;
-      background: #e8f5e9; color: #007F3A; font-weight: bold;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 12pt; flex-shrink: 0;
-    }
-    .s-name  { display: block; font-weight: 600; font-size: 9pt; }
-    .s-affil { display: block; font-size: 8pt; color: #666; }
-
-    .axis-tag {
-      display: inline-block; color: #fff; padding: 2px 8px;
-      border-radius: 8px; font-size: 7.5pt; margin-top: 3px;
-    }
-
-    .doc-footer {
-      margin-top: 28px; padding-top: 10px; border-top: 1px solid #e4e0d8;
-      text-align: center; font-size: 7.5pt; color: #bbb;
-    }
-  </style>
-</head>
-<body>
-  <div class="doc-header">
-    <div>
-      <div class="ev-sub">Programa Científico</div>
-      <div class="ev-name">${eventName}</div>
-    </div>
-    <div class="print-date">Impreso el ${new Date().toLocaleDateString('es', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-  </div>
-
-  ${days
-    .map(
-      (day) => `
-    <div class="day-block">
-      <div class="day-hdr">${fmtDayPrint(day)}</div>
-      <table>${rowsHtml(day)}</table>
-    </div>`,
-    )
-    .join('')}
-
-  <div class="doc-footer">Generado automáticamente por el sistema SEMS</div>
-</body>
-</html>`;
-
-  win.document.write(html);
-  win.document.close();
-  setTimeout(() => { win.focus(); win.print(); }, 600);
-}
 
 // ── SubmissionSearchPanel ────────────────────────────────────────────────────
 const PANEL_DEFAULT_LIMIT = 30;
@@ -432,10 +271,11 @@ function DeleteSlotModal({
 
 // ── SlotCard (shared visual, no DnD) ─────────────────────────────────────────
 function SlotCard({
-  slot, onEdit, onDelete, onTogglePublish, showDate = false, dragHandle = null,
+  slot, onEdit, onDelete, onTogglePublish, onNotify, notifying, showDate = false, dragHandle = null,
 }: {
   slot: AgendaSlot; onEdit: (s: AgendaSlot) => void;
   onDelete: (id: string) => void; onTogglePublish: (s: AgendaSlot) => void;
+  onNotify?: (id: string) => void; notifying?: boolean;
   showDate?: boolean; dragHandle?: ReactNode;
 }) {
   const mainAuthor =
@@ -507,6 +347,11 @@ function SlotCard({
           {slot.isPublished && (
             <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">Publicado</span>
           )}
+          {slot.submissionId && (
+            slot.speakerNotified
+              ? <span className="flex items-center gap-0.5 text-[10px] text-green-600"><MailCheck size={10} /> Notificado</span>
+              : <span className="flex items-center gap-0.5 text-[10px] text-amber-500"><MailWarning size={10} /> Pendiente</span>
+          )}
         </div>
         <p className="text-sm font-semibold text-gray-800 truncate leading-snug">
           {slot.submission?.titleEs || slot.title || <span className="text-gray-400 italic">Sin título</span>}
@@ -521,7 +366,17 @@ function SlotCard({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+      <div className="flex items-center gap-1 flex-shrink-0">
+        {slot.submissionId && onNotify && (
+          <button
+            onClick={() => onNotify(slot.id)}
+            disabled={notifying}
+            title={slot.speakerNotified ? 'Reenviar notificación' : 'Notificar ponente'}
+            className="p-1.5 text-gray-400 hover:text-green-600 rounded-lg hover:bg-gray-100 disabled:opacity-40"
+          >
+            {notifying ? <RefreshCw size={14} className="animate-spin" /> : <Mail size={14} />}
+          </button>
+        )}
         <button onClick={() => onTogglePublish(slot)} title={slot.isPublished ? 'Quitar publicación' : 'Publicar'}
           className="p-1.5 text-gray-400 hover:text-primary-600 rounded-lg hover:bg-gray-100">
           {slot.isPublished ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -539,10 +394,11 @@ function SlotCard({
 
 // ── SortableSlot (DnD wrapper) ────────────────────────────────────────────────
 function SortableSlot({
-  slot, onEdit, onDelete, onTogglePublish,
+  slot, onEdit, onDelete, onTogglePublish, onNotify, notifying,
 }: {
   slot: AgendaSlot; onEdit: (s: AgendaSlot) => void;
   onDelete: (id: string) => void; onTogglePublish: (s: AgendaSlot) => void;
+  onNotify?: (id: string) => void; notifying?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: slot.id });
@@ -551,6 +407,7 @@ function SortableSlot({
     <div ref={setNodeRef} style={style}>
       <SlotCard
         slot={slot} onEdit={onEdit} onDelete={onDelete} onTogglePublish={onTogglePublish}
+        onNotify={onNotify} notifying={notifying}
         dragHandle={
           <div {...attributes} {...listeners} className="cursor-grab text-gray-300 hover:text-gray-500 flex-shrink-0">
             <GripVertical size={16} />
@@ -646,6 +503,69 @@ const EMPTY_FORM: SlotForm = {
   speakerName: '', speakerAffiliation: '', moderatorName: '', description: '',
 };
 
+// ── NotifyModal ───────────────────────────────────────────────────────────────
+function NotifyModal({
+  slots, onClose, onNotify, isPending,
+}: {
+  slots: AgendaSlot[];
+  onClose: () => void;
+  onNotify: (force: boolean) => void;
+  isPending: boolean;
+}) {
+  const withSub  = slots.filter((s) => s.submissionId);
+  const notified = withSub.filter((s) => s.speakerNotified);
+  const pending  = withSub.filter((s) => !s.speakerNotified);
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="font-heading font-bold text-lg text-gray-900 flex items-center gap-2">
+            <Mail size={18} className="text-primary-600" /> Notificar Ponentes
+          </h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-2xl font-bold text-gray-800">{withSub.length}</p>
+              <p className="text-xs text-gray-500 mt-0.5">Con ponencia</p>
+            </div>
+            <div className="bg-green-50 rounded-xl p-3">
+              <p className="text-2xl font-bold text-green-700">{notified.length}</p>
+              <p className="text-xs text-green-600 mt-0.5">Ya notificados</p>
+            </div>
+            <div className="bg-amber-50 rounded-xl p-3">
+              <p className="text-2xl font-bold text-amber-700">{pending.length}</p>
+              <p className="text-xs text-amber-600 mt-0.5">Pendientes</p>
+            </div>
+          </div>
+          <p className="text-sm text-gray-500">
+            Elige qué ponentes notificar sobre su bloque en la agenda.
+          </p>
+        </div>
+        <div className="p-5 border-t border-gray-100 flex flex-col gap-2">
+          <button
+            onClick={() => onNotify(false)}
+            disabled={isPending || pending.length === 0}
+            className="btn-primary py-2.5 flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            <Mail size={15} /> Notificar pendientes ({pending.length})
+          </button>
+          <button
+            onClick={() => onNotify(true)}
+            disabled={isPending || withSub.length === 0}
+            className="btn-outline py-2.5 flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            <RefreshCw size={14} /> Reenviar a todos ({withSub.length})
+          </button>
+          <button onClick={onClose} className="text-sm text-gray-400 hover:text-gray-600 mt-1 py-1">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 export default function AgendaBuilder() {
   const qc = useQueryClient();
@@ -656,6 +576,9 @@ export default function AgendaBuilder() {
   const [form, setForm] = useState<SlotForm>(EMPTY_FORM);
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<AgendaSlot | null>(null);
+  const [showNotifyModal, setShowNotifyModal] = useState(false);
+  const [notifyingSlotId, setNotifyingSlotId] = useState<string | null>(null);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -777,11 +700,52 @@ export default function AgendaBuilder() {
   });
   const publishAllMutation = useMutation({
     mutationFn: () => agendaApi.publishAll(event!.id),
-    onSuccess: () => { toast.success('Toda la agenda publicada'); qc.invalidateQueries({ queryKey: ['agenda-all'] }); },
+    onSuccess: async () => {
+      await eventsApi.publishAgenda(event!.id);
+      toast.success('Toda la agenda publicada');
+      qc.invalidateQueries({ queryKey: ['agenda-all'] });
+      qc.invalidateQueries({ queryKey: ['event-active'] });
+    },
   });
   const reorderMutation = useMutation({
     mutationFn: (orderedIds: string[]) => agendaApi.reorder(orderedIds),
   });
+  const notifySlotMutation = useMutation({
+    mutationFn: (id: string) => agendaApi.notifySlot(id),
+    onMutate: (id) => setNotifyingSlotId(id),
+    onSuccess: (data) => {
+      setNotifyingSlotId(null);
+      if (data.sent) { toast.success('Notificación enviada'); qc.invalidateQueries({ queryKey: ['agenda-all'] }); }
+      else toast.error(data.error || 'Error al enviar');
+    },
+    onError: () => { setNotifyingSlotId(null); toast.error('Error al notificar'); },
+  });
+  const notifyAllMutation = useMutation({
+    mutationFn: ({ force }: { force: boolean }) => agendaApi.notifyAll(event!.id, force),
+    onSuccess: (data) => {
+      toast.success(`Enviados: ${data.sent} · Fallidos: ${data.failed} · Omitidos: ${data.skipped}`);
+      setShowNotifyModal(false);
+      qc.invalidateQueries({ queryKey: ['agenda-all'] });
+    },
+    onError: () => toast.error('Error en el envío masivo'),
+  });
+
+  const handleDownloadPdf = async () => {
+    if (!event) return;
+    setDownloadingPdf(true);
+    try {
+      const blob = await agendaApi.downloadPdf(event.id, event.name);
+      const url = URL.createObjectURL(blob as Blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `agenda-${event.name.replace(/\s+/g, '-')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch { toast.error('Error al descargar PDF'); }
+    finally { setDownloadingPdf(false); }
+  };
 
   const closeForm = () => { setShowForm(false); setEditingSlot(null); setForm(EMPTY_FORM); };
 
@@ -871,6 +835,16 @@ export default function AgendaBuilder() {
         />
       )}
 
+      {/* ── Modal notificar ponentes ── */}
+      {showNotifyModal && (
+        <NotifyModal
+          slots={slots}
+          isPending={notifyAllMutation.isPending}
+          onClose={() => setShowNotifyModal(false)}
+          onNotify={(force) => notifyAllMutation.mutate({ force })}
+        />
+      )}
+
       {/* ── Header ── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -881,13 +855,21 @@ export default function AgendaBuilder() {
         </div>
         <div className="flex gap-2 flex-wrap">
           <button
-            onClick={() => printAgenda(slots, event?.name || 'Evento', selectedDay || undefined)}
+            onClick={handleDownloadPdf}
+            disabled={downloadingPdf}
             className="btn-outline btn-sm flex items-center gap-1.5"
           >
-            <Printer size={14} /> Imprimir PDF
+            {downloadingPdf ? <RefreshCw size={14} className="animate-spin" /> : <FileDown size={14} />}
+            Descargar PDF
           </button>
           <button
-            onClick={() => { setEditingSlot(null); setForm({ ...EMPTY_FORM, day: selectedDay }); setShowForm(true); }}
+            onClick={() => setShowNotifyModal(true)}
+            className="btn-outline btn-sm flex items-center gap-1.5"
+          >
+            <Mail size={14} /> Notificar ponentes
+          </button>
+          <button
+            onClick={() => { setEditingSlot(null); setForm({ ...EMPTY_FORM, day: selectedDay, moderatorName: event?.defaultModerator || '' }); setShowForm(true); }}
             className="btn-primary btn-sm flex items-center gap-1.5 text-white"
           >
             <Plus size={15} /> Agregar Bloque
@@ -1044,6 +1026,8 @@ export default function AgendaBuilder() {
                       key={slot.id} slot={slot} onEdit={openEdit}
                       onDelete={(id) => { const s = slots.find((x) => x.id === id); if (s) setDeleteTarget(s); }}
                       onTogglePublish={(s) => publishMutation.mutate({ id: s.id, publish: !s.isPublished })}
+                      onNotify={(id) => notifySlotMutation.mutate(id)}
+                      notifying={notifyingSlotId === slot.id}
                     />
                   ))}
                 </div>
@@ -1057,6 +1041,8 @@ export default function AgendaBuilder() {
                   key={slot.id} slot={slot} showDate onEdit={openEdit}
                   onDelete={(id) => { const s = slots.find((x) => x.id === id); if (s) setDeleteTarget(s); }}
                   onTogglePublish={(s) => publishMutation.mutate({ id: s.id, publish: !s.isPublished })}
+                  onNotify={(id) => notifySlotMutation.mutate(id)}
+                  notifying={notifyingSlotId === slot.id}
                 />
               ))}
             </div>

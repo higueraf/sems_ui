@@ -68,6 +68,7 @@ export interface ScientificEvent {
   reviewDeadline?: string;
   contactEmail?: string;
   contactPhone?: string;
+  defaultModerator?: string;
   bannerImageUrl?: string;
   logoUrl?: string;
   /** 'symposium' (simposio) | 'workshop' (taller) */
@@ -147,6 +148,8 @@ export interface Organizer {
   photoUrl?: string;
   displayOrder: number;
   isVisible: boolean;
+  signsPonenCert?: boolean;
+  signatureImageUrl?: string;
   members?: OrganizerMember[];
 }
 
@@ -276,6 +279,7 @@ export interface Submission {
   usesAi?: boolean;
   aiUsageDescription?: string;
   pageCount?: number;
+  isbnCode?: string;
   authors: SubmissionAuthor[];
   statusHistory?: SubmissionStatusHistory[];
   /** Historial de versiones del documento */

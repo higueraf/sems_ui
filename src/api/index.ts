@@ -42,6 +42,15 @@ export const organizersApi = {
       })
       .then((r) => r.data);
   },
+  uploadSignature: (id: string, file: File) => {
+    const form = new FormData();
+    form.append('signature', file);
+    return api
+      .post<Organizer>(`/organizers/${id}/signature`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data);
+  },
   remove: (id: string) =>
     api.delete(`/organizers/${id}`).then((r) => r.data),
 

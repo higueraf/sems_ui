@@ -34,4 +34,26 @@ export const agendaApi = {
 
   getEligibleSubmissions: (eventId: string) =>
     api.get('/agenda/eligible-submissions', { params: { eventId } }).then((r) => r.data),
+
+  notifySlot: (id: string) =>
+    api.post<{ sent: boolean; error?: string }>(`/agenda/${id}/notify`).then((r) => r.data),
+
+  notifyAll: (eventId: string, force = false) =>
+    api.post<{ sent: number; failed: number; skipped: number }>(
+      '/agenda/notify-all',
+      {},
+      { params: { eventId, ...(force ? { force: 'true' } : {}) } },
+    ).then((r) => r.data),
+
+  downloadPdf: (eventId: string, eventName: string) =>
+    api.get<Blob>('/agenda/pdf', {
+      params: { eventId, eventName },
+      responseType: 'blob',
+    }).then((r) => r.data),
+
+  downloadPdfPublic: (eventId: string, eventName: string) =>
+    api.get<Blob>('/agenda/pdf-public', {
+      params: { eventId, eventName },
+      responseType: 'blob',
+    }).then((r) => r.data),
 };

@@ -73,6 +73,7 @@ export default function SubmissionDetail() {
   const [downloadingIdDocId, setDownloadingIdDocId] = useState<string | null>(null);
   const [ptNotes,           setPtNotes]            = useState<Record<string, string>>({});
   const [ptNotify,          setPtNotify]           = useState<Record<string, boolean>>({});
+  const [ptIsbn,            setPtIsbn]             = useState<Record<string, string>>({});
   const [generatingCert,    setGeneratingCert]     = useState<string | null>(null);
   // Document upload/activate
   const [docUploadPtId,     setDocUploadPtId]      = useState<string | null>(null);
@@ -95,7 +96,7 @@ export default function SubmissionDetail() {
   const { data: users } = useQuery({
     queryKey: ['users-admin'],
     queryFn: usersApi.getAll,
-    enabled: user?.role === 'admin',
+    enabled: user?.role === 'admin' || user?.role === 'evaluator',
   });
 
   const { data: allProductTypes } = useQuery({
@@ -115,6 +116,7 @@ export default function SubmissionDetail() {
         productTypeId, newStatus,
         notes: ptNotes[productTypeId] || undefined,
         notifyApplicant: ptNotify[productTypeId] ?? true,
+        isbnCode: ptIsbn[productTypeId]?.trim() || undefined,
       }).then(r => r.data),
     onSuccess: () => {
       toast.success('Estatus por tipo de producto actualizado');
@@ -456,7 +458,7 @@ export default function SubmissionDetail() {
           </div>
 
           {/* Asignar evaluador */}
-          {user?.role === 'admin' && users && (
+          {(user?.role === 'admin' || user?.role === 'evaluator') && users && (
             <div className="card">
               <h3 className="font-heading font-semibold text-gray-800 mb-3">Asignar Evaluador</h3>
               <select
@@ -473,7 +475,7 @@ export default function SubmissionDetail() {
           )}
 
           {/* Correo personalizado */}
-          {user?.role === 'admin' && (
+          {(user?.role === 'admin' || user?.role === 'evaluator') && (
             <div className="card">
               <h3 className="font-heading font-semibold text-gray-800 mb-3">Correo Personalizado</h3>
               <p className="text-xs text-gray-500 mb-3">
@@ -579,6 +581,22 @@ export default function SubmissionDetail() {
                               rows={3}
                               className="form-input text-xs resize-none"
                             />
+                            {/* ISBN obligatorio para Capítulo de Libro al marcar ejecutado */}
+                            {allowed2.includes('executed' as SubmissionStatus) &&
+                              (pt.name.toLowerCase().includes('cap') && pt.name.toLowerCase().includes('libro')) && (
+                              <div>
+                                <label className="block text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-1">
+                                  Código ISBN <span className="text-red-500">*</span> (requerido para ejecutar)
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder="Ej: 978-628-97432-7-2"
+                                  value={ptIsbn[ptId] ?? (sub?.isbnCode ?? '')}
+                                  onChange={(e) => setPtIsbn(prev => ({ ...prev, [ptId]: e.target.value }))}
+                                  className="form-input text-xs"
+                                />
+                              </div>
+                            )}
                             <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer select-none">
                               <input
                                 type="checkbox"

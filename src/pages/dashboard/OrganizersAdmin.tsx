@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
   Plus, Edit2, Trash2, X, Check, Upload, Image,
-  ChevronDown, ChevronRight, Users, Building2, UserPlus, User,
+  ChevronDown, ChevronRight, Users, Building2, UserPlus, User, PenLine,
 } from 'lucide-react';
 import { eventsApi } from '../../api/events.api';
 import { organizersApi, countriesApi } from '../../api/index';
@@ -36,6 +36,7 @@ const EMPTY_PERSON = {
   type: 'person', name: '', title: '', institutionalPosition: '',
   role: 'organizing_committee', bio: '',
   email: '', phone: '', countryId: '', displayOrder: 0, isVisible: true,
+  signsPonenCert: false,
 };
 
 const PERSON_ROLE_LABELS: Record<string, string> = {
@@ -301,6 +302,7 @@ export default function OrganizersAdmin() {
   const [editingPerson, setEditingPerson] = useState<Organizer | null>(null);
   const [personForm, setPersonForm] = useState<any>(EMPTY_PERSON);
   const [uploadingPersonPhoto, setUploadingPersonPhoto] = useState<string | null>(null);
+  const [uploadingSignature, setUploadingSignature] = useState<string | null>(null);
 
   const { data: event } = useQuery({ queryKey: ['event-active'], queryFn: eventsApi.getActive });
   const { data: organizers, isLoading } = useQuery({
@@ -373,6 +375,22 @@ export default function OrganizersAdmin() {
       toast.error('Error al subir foto');
     } finally {
       setUploadingPersonPhoto(null);
+      e.target.value = '';
+    }
+  };
+
+  const handleSignatureUpload = async (org: Organizer, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingSignature(org.id);
+    try {
+      await organizersApi.uploadSignature(org.id, file);
+      invalidate();
+      toast.success('Firma actualizada');
+    } catch {
+      toast.error('Error al subir firma');
+    } finally {
+      setUploadingSignature(null);
       e.target.value = '';
     }
   };
@@ -592,6 +610,55 @@ export default function OrganizersAdmin() {
                           <Image size={9} /> Sin foto
                         </p>
                       )}
+
+                      {/* Firma en certificado de ponencia */}
+                      <div className="mt-2 border-t border-gray-100 pt-2 space-y-1.5">
+                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={!!p.signsPonenCert}
+                            className="w-3.5 h-3.5 accent-primary-600"
+                            onChange={(e) =>
+                              updateM.mutate({ id: p.id, data: { signsPonenCert: e.target.checked } })
+                            }
+                          />
+                          <span className="text-[10px] font-semibold text-primary-700 flex items-center gap-1">
+                            <PenLine size={10} /> Firma el Certificado de Ponencia
+                          </span>
+                        </label>
+
+                        {/* Subir imagen de firma */}
+                        <div className="flex items-center gap-2">
+                          {p.signatureImageUrl ? (
+                            <img
+                              src={getFileUrl(p.signatureImageUrl)}
+                              alt="firma"
+                              className="h-8 max-w-[100px] object-contain border border-gray-200 rounded bg-white p-0.5"
+                            />
+                          ) : (
+                            <span className="text-[10px] text-gray-400 italic">Sin imagen de firma</span>
+                          )}
+                          <label
+                            htmlFor={`sig-${p.id}`}
+                            className="flex items-center gap-1 text-[10px] text-primary-600 hover:text-primary-800
+                              font-semibold cursor-pointer bg-primary-50 hover:bg-primary-100 px-2 py-1 rounded-lg"
+                            title="Subir imagen de firma (JPG/PNG)"
+                          >
+                            {uploadingSignature === p.id
+                              ? <span className="w-3 h-3 border border-primary-500 rounded-full animate-spin border-t-transparent" />
+                              : <Upload size={10} />}
+                            Subir firma
+                          </label>
+                          <input
+                            id={`sig-${p.id}`}
+                            type="file"
+                            accept="image/jpeg,image/png"
+                            className="hidden"
+                            onChange={(e) => handleSignatureUpload(p, e)}
+                            disabled={!!uploadingSignature}
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     {/* Acciones */}
@@ -687,12 +754,20 @@ export default function OrganizersAdmin() {
                   <input type="number" className="form-input" value={personForm.displayOrder || 0}
                     onChange={(e) => setPersonForm({ ...personForm, displayOrder: +e.target.value })} />
                 </div>
-                <div className="flex items-end pb-1">
+                <div className="flex flex-col gap-2 pb-1 justify-end">
                   <label className="flex items-center gap-2 text-sm cursor-pointer">
                     <input type="checkbox" checked={personForm.isVisible}
                       onChange={(e) => setPersonForm({ ...personForm, isVisible: e.target.checked })}
                       className="w-4 h-4 accent-primary-500" />
                     Visible en el sitio
+                  </label>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="checkbox" checked={!!personForm.signsPonenCert}
+                      onChange={(e) => setPersonForm({ ...personForm, signsPonenCert: e.target.checked })}
+                      className="w-4 h-4 accent-primary-500" />
+                    <span className="flex items-center gap-1">
+                      <PenLine size={13} className="text-primary-600" /> Firma cert. ponencia
+                    </span>
                   </label>
                 </div>
               </div>

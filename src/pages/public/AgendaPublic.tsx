@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Calendar, MapPin, User, Printer, Clock } from 'lucide-react';
+import { Calendar, MapPin, User, FileDown, Clock } from 'lucide-react';
 import { eventsApi } from '../../api/events.api';
 import { agendaApi } from '../../api/agenda.api';
 import { AgendaSlot } from '../../types';
@@ -36,159 +36,6 @@ const SLOT_TYPE_PILL: Record<string, string> = {
   panel: 'bg-purple-100 text-purple-700',
 };
 
-// ── Print helpers ────────────────────────────────────────────────────────────
-function fmtTimePrint(t: string) { return t?.substring(0, 5) || t; }
-function fmtDayPrint(d: string) {
-  try { return format(parseISO(d), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es }); }
-  catch { return d; }
-}
-
-function printPublicAgenda(slots: AgendaSlot[], eventName: string, selectedDay?: string, selectedRoom?: string) {
-  const win = window.open('', '_blank', 'width=1100,height=800');
-  if (!win) return;
-
-  const days = selectedDay
-    ? [selectedDay]
-    : [...new Set(slots.map((s) => s.day.split('T')[0]))].sort();
-
-  const slotsForDay = (day: string) =>
-    slots
-      .filter((s) => s.day.split('T')[0] === day && (!selectedRoom || s.room === selectedRoom))
-      .sort((a, b) => a.startTime.localeCompare(b.startTime));
-
-  const rowsHtml = (day: string) =>
-    slotsForDay(day)
-      .map((slot) => {
-        const author =
-          slot.submission?.authors?.find((a) => a.isCorresponding) ??
-          slot.submission?.authors?.[0];
-        const name = slot.speakerName || author?.fullName || '';
-        const flag = author?.country?.flagEmoji || '';
-        const affil = slot.speakerAffiliation || author?.affiliation || '';
-        const title = slot.submission?.titleEs || slot.title || '';
-        const photo = author?.photoUrl || '';
-        const axis = slot.thematicAxis || slot.submission?.thematicAxis;
-
-        return `
-        <tr>
-          <td class="td-time">
-            <span class="t-s">${fmtTimePrint(slot.startTime)}</span>
-            <span class="t-d">—</span>
-            <span class="t-e">${fmtTimePrint(slot.endTime)}</span>
-          </td>
-          ${slot.room ? `<td class="td-room"><span class="room-tag">${slot.room}</span></td>` : '<td></td>'}
-          <td class="td-content">
-            <div class="slot-type-row">
-              <span class="type-tag">${SLOT_TYPE_LABELS[slot.type] || slot.type}</span>
-              ${axis ? `<span class="axis-tag" style="background:${axis.color || '#007F3A'}">${axis.name}</span>` : ''}
-            </div>
-            ${title ? `<p class="p-title">${title}</p>` : ''}
-            ${name ? `
-              <div class="speaker-row">
-                ${photo
-                  ? `<img src="${photo}" class="s-photo" onerror="this.style.display='none'" />`
-                  : `<div class="s-avatar">${name.charAt(0).toUpperCase()}</div>`}
-                <div class="s-info">
-                  <span class="s-name">${name} ${flag}</span>
-                  ${affil ? `<span class="s-affil">${affil}</span>` : ''}
-                </div>
-              </div>` : ''}
-          </td>
-        </tr>`;
-      })
-      .join('');
-
-  const html = `<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Agenda — ${eventName}</title>
-  <style>
-    @page { size: A4; margin: 18mm 14mm; }
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:'Georgia',serif; color:#111; background:#fff; font-size:10.5pt; }
-
-    .doc-header {
-      border-bottom:3px solid #007F3A; padding-bottom:14px; margin-bottom:26px;
-      display:flex; align-items:flex-end; justify-content:space-between;
-    }
-    .ev-sub  { font-size:8pt; color:#999; text-transform:uppercase; letter-spacing:2px; margin-bottom:3px; }
-    .ev-name { color:#007F3A; font-size:19pt; font-weight:bold; }
-    .room-filter { font-size:8pt; color:#666; text-align:right; }
-    .print-date { font-size:8pt; color:#aaa; text-align:right; margin-top:3px; }
-
-    .day-block { margin-bottom:26px; page-break-inside:avoid; }
-    .day-hdr {
-      background:#007F3A; color:#fff;
-      padding:7px 14px; border-radius:4px;
-      font-size:11pt; font-weight:bold;
-      text-transform:capitalize; margin-bottom:10px;
-    }
-
-    table { width:100%; border-collapse:collapse; }
-    tr { border-bottom:1px solid #f0ece4; }
-    tr:last-child { border-bottom:none; }
-    td { padding:8px 9px; vertical-align:top; }
-
-    .td-time {
-      width:68px; color:#007F3A; font-family:'Courier New',monospace;
-      font-size:8.5pt; font-weight:bold; white-space:nowrap; text-align:center;
-    }
-    .t-s,.t-e { display:block; }
-    .t-d { display:block; color:#ccc; font-weight:normal; }
-
-    .td-room { width:82px; }
-    .room-tag { background:#f3f3f3; color:#555; padding:2px 7px; border-radius:8px; font-size:7.5pt; display:inline-block; }
-
-    .slot-type-row { display:flex; gap:6px; align-items:center; margin-bottom:5px; }
-    .type-tag { background:#e8f5e9; color:#2e7d32; padding:2px 8px; border-radius:8px; font-size:7.5pt; font-weight:600; }
-    .axis-tag { color:#fff; padding:2px 8px; border-radius:8px; font-size:7.5pt; }
-
-    .p-title { font-weight:bold; font-size:10pt; color:#111; margin-bottom:5px; line-height:1.3; }
-
-    .speaker-row { display:flex; align-items:center; gap:7px; }
-    .s-photo { width:30px; height:30px; border-radius:50%; object-fit:cover; border:1.5px solid #dde; flex-shrink:0; }
-    .s-avatar {
-      width:30px; height:30px; border-radius:50%; background:#e8f5e9; color:#007F3A;
-      font-weight:bold; display:flex; align-items:center; justify-content:center;
-      font-size:13pt; flex-shrink:0;
-    }
-    .s-info { display:flex; flex-direction:column; }
-    .s-name  { font-weight:600; font-size:9pt; }
-    .s-affil { font-size:8pt; color:#666; }
-
-    .doc-footer {
-      margin-top:28px; padding-top:10px; border-top:1px solid #e4e0d8;
-      text-align:center; font-size:7.5pt; color:#bbb;
-    }
-  </style>
-</head>
-<body>
-  <div class="doc-header">
-    <div>
-      <div class="ev-sub">Programa Científico</div>
-      <div class="ev-name">${eventName}</div>
-    </div>
-    <div>
-      ${selectedRoom ? `<div class="room-filter">Sala: ${selectedRoom}</div>` : ''}
-      <div class="print-date">Impreso el ${new Date().toLocaleDateString('es', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-    </div>
-  </div>
-
-  ${days.map((day) => `
-    <div class="day-block">
-      <div class="day-hdr">${fmtDayPrint(day)}</div>
-      <table>${rowsHtml(day)}</table>
-    </div>`).join('')}
-
-  <div class="doc-footer">Programa generado por el sistema SEMS</div>
-</body>
-</html>`;
-
-  win.document.write(html);
-  win.document.close();
-  setTimeout(() => { win.focus(); win.print(); }, 600);
-}
 
 // ── SlotCard ─────────────────────────────────────────────────────────────────
 function SlotCard({ slot, isDark }: { slot: AgendaSlot; isDark: boolean }) {
@@ -326,6 +173,24 @@ export default function AgendaPublic() {
 
   const [selectedDay, setSelectedDay] = useState<string>('');
   const [selectedRoom, setSelectedRoom] = useState<string>('');
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    if (!event) return;
+    setDownloadingPdf(true);
+    try {
+      const blob = await agendaApi.downloadPdfPublic(event.id, event.name);
+      const url = URL.createObjectURL(blob as Blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `agenda-${event.name.replace(/\s+/g, '-')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch { /* silent */ }
+    finally { setDownloadingPdf(false); }
+  };
 
   const activeDay = selectedDay || days[0] || '';
 
@@ -424,17 +289,18 @@ export default function AgendaPublic() {
                   );
                 })}
 
-                {/* Spacer + Print button */}
+                {/* Spacer + Download PDF button */}
                 <div className="flex-1 min-w-4" />
                 <button
-                  onClick={() => printPublicAgenda(slots || [], event?.name || '', activeDay, selectedRoom)}
-                  className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+                  onClick={handleDownloadPdf}
+                  disabled={downloadingPdf}
+                  className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium border transition-all disabled:opacity-60 ${
                     isDark
                       ? 'bg-gray-800 text-gray-300 border-white/10 hover:bg-gray-700'
                       : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-100'
                   }`}
                 >
-                  <Printer size={14} /> PDF
+                  <FileDown size={14} /> PDF
                 </button>
               </div>
 
