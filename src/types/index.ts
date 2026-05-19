@@ -127,6 +127,8 @@ export interface OrganizerMember {
   countryId?: string;
   displayOrder: number;
   isVisible: boolean;
+  signsPonenCert?: boolean;
+  signatureImageUrl?: string;
 }
 
 export interface Organizer {
@@ -232,6 +234,7 @@ export interface SubmissionAuthor {
   identityDocNumber?: string;
   identityDocUrl?: string;
   identityDocFileName?: string;
+  isPresenter?: boolean;
 }
 
 export interface SubmissionStatusHistory {

@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import {
   ArrowLeft, Mail, Download, Upload, Trash2, Image,
   Loader2, FileText, ShieldCheck, Eye, RefreshCw, Award, Send,
-  Star, Plus, CheckCircle2, Package,
+  Star, Plus, CheckCircle2, Package, Mic, MicOff,
 } from 'lucide-react';
 import { submissionsApi } from '../../api/submissions.api';
 import { certificatesApi } from '../../api/certificates.api';
@@ -75,6 +75,7 @@ export default function SubmissionDetail() {
   const [ptNotify,          setPtNotify]           = useState<Record<string, boolean>>({});
   const [ptIsbn,            setPtIsbn]             = useState<Record<string, string>>({});
   const [generatingCert,    setGeneratingCert]     = useState<string | null>(null);
+  const [togglingPresenter, setTogglingPresenter]  = useState<string | null>(null);
   // Document upload/activate
   const [docUploadPtId,     setDocUploadPtId]      = useState<string | null>(null);
   const [docUploadFile,     setDocUploadFile]      = useState<File | null>(null);
@@ -306,6 +307,11 @@ export default function SubmissionDetail() {
                           <ShieldCheck size={9} /> ID
                         </span>
                       )}
+                      {author.isPresenter && (
+                        <span className="badge bg-violet-100 text-violet-700 text-xs flex items-center gap-1">
+                          <Mic size={9} /> Ponente
+                        </span>
+                      )}
                     </div>
 
                     <div className="text-xs text-gray-500 mt-1 space-y-0.5">
@@ -408,6 +414,33 @@ export default function SubmissionDetail() {
                             }
                           }}
                         />
+                      )}
+
+                      {/* Marcar/desmarcar como ponente */}
+                      {user?.role === 'admin' && (
+                        <button
+                          disabled={togglingPresenter === author.id}
+                          onClick={async () => {
+                            setTogglingPresenter(author.id);
+                            try {
+                              await submissionsApi.setAuthorPresenter(author.id, !author.isPresenter);
+                              qc.invalidateQueries({ queryKey: ['submission', id] });
+                              toast.success(author.isPresenter ? `${author.fullName} ya no es ponente` : `${author.fullName} marcado como ponente`);
+                            } catch { toast.error('Error al actualizar'); }
+                            finally { setTogglingPresenter(null); }
+                          }}
+                          className={`flex items-center gap-1 text-[11px] font-medium rounded-lg px-2 py-1 transition-colors ${
+                            author.isPresenter
+                              ? 'bg-violet-100 text-violet-700 hover:bg-violet-200'
+                              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                          }`}
+                          title={author.isPresenter ? 'Quitar como ponente' : 'Marcar como ponente (recibirá certificado)'}
+                        >
+                          {togglingPresenter === author.id
+                            ? <Loader2 size={10} className="animate-spin" />
+                            : author.isPresenter ? <MicOff size={10} /> : <Mic size={10} />}
+                          {author.isPresenter ? 'Quitar ponente' : 'Ponente'}
+                        </button>
                       )}
                     </div>
                   </div>
@@ -537,7 +570,7 @@ export default function SubmissionDetail() {
                   {(isExecuted || isSent) && (
                     <div className={`flex items-center gap-2 mb-4 text-xs rounded-lg px-3 py-2 ${isSent ? 'bg-indigo-50 text-indigo-700' : 'bg-emerald-50 text-emerald-700'}`}>
                       <Award size={14} />
-                      {isSent ? 'Certificados enviados a todos los autores' : 'Listo para generar certificados'}
+                      {isSent ? 'Certificados enviados a los ponentes' : 'Listo para generar certificados (solo ponentes marcados)'}
                     </div>
                   )}
 

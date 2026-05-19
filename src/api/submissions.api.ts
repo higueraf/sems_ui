@@ -114,6 +114,9 @@ export const submissionsApi = {
   removeAuthorPhoto: (authorId: string) =>
     api.patch(`/submissions/authors/${authorId}/photo/remove`).then((r) => r.data),
 
+  setAuthorPresenter: (authorId: string, isPresenter: boolean) =>
+    api.patch(`/submissions/authors/${authorId}/presenter`, { isPresenter }).then((r) => r.data),
+
   // ── Correos ────────────────────────────────────────────────────────────────
   /** Correo con adjunto Word opcional (base64) */
   sendEmail: (

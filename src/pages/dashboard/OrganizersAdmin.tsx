@@ -52,6 +52,7 @@ const EMPTY_MEMBER = {
   fullName: '', academicTitle: '', institutionalPosition: '',
   role: 'committee', roleLabel: '', bio: '',
   email: '', phone: '', countryId: '', displayOrder: 0, isVisible: true,
+  signsPonenCert: false,
 };
 
 // ─── Sub-componente: panel de miembros de una institución ────────────────────
@@ -62,6 +63,7 @@ function MembersPanel({ organizer }: { organizer: Organizer }) {
   const [editingMember, setEditingMember] = useState<OrganizerMember | null>(null);
   const [form, setForm] = useState<any>(EMPTY_MEMBER);
   const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
+  const [uploadingSignature, setUploadingSignature] = useState<string | null>(null);
 
   const { data: countries } = useQuery({ queryKey: ['countries'], queryFn: () => countriesApi.getAll(true) });
 
@@ -109,6 +111,22 @@ function MembersPanel({ organizer }: { organizer: Organizer }) {
     } finally {
       setUploadingPhoto(null);
       if (photoRef.current) photoRef.current.value = '';
+    }
+  };
+
+  const handleSignatureUpload = async (memberId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingSignature(memberId);
+    try {
+      await organizersApi.uploadMemberSignature(memberId, file);
+      invalidate();
+      toast.success('Firma actualizada');
+    } catch {
+      toast.error('Error al subir firma');
+    } finally {
+      setUploadingSignature(null);
+      e.target.value = '';
     }
   };
 
@@ -179,6 +197,42 @@ function MembersPanel({ organizer }: { organizer: Organizer }) {
                   </span>
                 </p>
                 {m.email && <p className="text-xs text-gray-400 truncate">{m.email}</p>}
+
+                {/* Firma para certificado */}
+                {m.signsPonenCert && (
+                  <div className="mt-1.5 border-t border-gray-100 pt-1.5 flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-semibold text-primary-700 flex items-center gap-1">
+                      <PenLine size={9} /> Firma certificado
+                    </span>
+                    {m.signatureImageUrl ? (
+                      <img
+                        src={getFileUrl(m.signatureImageUrl)}
+                        alt="firma"
+                        className="h-6 max-w-[80px] object-contain border border-gray-200 rounded bg-white p-0.5"
+                      />
+                    ) : (
+                      <span className="text-[10px] text-amber-500 italic">Sin imagen</span>
+                    )}
+                    <label
+                      htmlFor={`msig-${m.id}`}
+                      className="text-[10px] text-primary-600 hover:text-primary-800 font-semibold cursor-pointer
+                        bg-primary-50 hover:bg-primary-100 px-1.5 py-0.5 rounded flex items-center gap-1"
+                    >
+                      {uploadingSignature === m.id
+                        ? <span className="w-2.5 h-2.5 border border-primary-500 rounded-full animate-spin border-t-transparent" />
+                        : <Upload size={9} />}
+                      Subir
+                    </label>
+                    <input
+                      id={`msig-${m.id}`}
+                      type="file"
+                      accept="image/jpeg,image/png"
+                      className="hidden"
+                      onChange={(e) => handleSignatureUpload(m.id, e)}
+                      disabled={!!uploadingSignature}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Acciones */}
@@ -274,6 +328,20 @@ function MembersPanel({ organizer }: { organizer: Organizer }) {
               <label className="form-label">Biografía</label>
               <textarea rows={2} className="form-input resize-none" value={form.bio || ''}
                 onChange={(e) => setForm({ ...form, bio: e.target.value })} />
+            </div>
+
+            <div style={{ gridColumn: 'span 2' }}>
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={!!form.signsPonenCert}
+                  className="w-4 h-4 accent-primary-600"
+                  onChange={(e) => setForm({ ...form, signsPonenCert: e.target.checked })}
+                />
+                <span className="text-sm font-semibold text-primary-700 flex items-center gap-1">
+                  <PenLine size={13} /> Firma el Certificado de Ponencia
+                </span>
+              </label>
             </div>
 
             <div style={{ gridColumn: 'span 2' }} className="flex justify-end gap-2 pt-1">
