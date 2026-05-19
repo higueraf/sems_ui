@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
-  Search, Filter, Eye, ChevronDown, Mail, X, Send,
-  AlertTriangle, CheckCircle, Loader2,
+  Search, Filter, Eye, ChevronDown, ChevronUp, ChevronsUpDown,
+  Mail, X, Send, AlertTriangle, CheckCircle, Loader2,
 } from 'lucide-react';
 import RichTextEditor from '../../components/ui/RichTextEditor';
 import { eventsApi } from '../../api/events.api';
@@ -247,6 +247,8 @@ export default function Submissions() {
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [sortBy, setSortBy] = useState<'name' | 'title' | 'date'>('date');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const { data: event } = useQuery({ queryKey: ['event-active'], queryFn: eventsApi.getActive });
   const { data: axes } = useQuery({
@@ -278,10 +280,37 @@ export default function Submissions() {
     enabled: !!event?.id,
   });
 
-  const totalPages = Math.max(1, Math.ceil((submissions?.length ?? 0) / pageSize));
-  const submissionsPage = submissions?.slice((page - 1) * pageSize, page * pageSize) ?? [];
+  const handleSort = (col: 'name' | 'title' | 'date') => {
+    if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(col); setSortDir('asc'); }
+    setPage(1);
+  };
+
+  const sortedSubmissions = [...(submissions ?? [])].sort((a, b) => {
+    let cmp = 0;
+    if (sortBy === 'name') {
+      const nameA = (a.authors.find(x => x.isCorresponding) || a.authors[0])?.fullName ?? '';
+      const nameB = (b.authors.find(x => x.isCorresponding) || b.authors[0])?.fullName ?? '';
+      cmp = nameA.localeCompare(nameB, 'es');
+    } else if (sortBy === 'title') {
+      cmp = (a.titleEs ?? '').localeCompare(b.titleEs ?? '', 'es');
+    } else {
+      cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    }
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(sortedSubmissions.length / pageSize));
+  const submissionsPage = sortedSubmissions.slice((page - 1) * pageSize, page * pageSize);
 
   const handleFilterChange = (fn: () => void) => { fn(); setPage(1); };
+
+  const SortIcon = ({ col }: { col: 'name' | 'title' | 'date' }) => {
+    if (sortBy !== col) return <ChevronsUpDown size={13} className="text-gray-400 ml-1 inline" />;
+    return sortDir === 'asc'
+      ? <ChevronUp size={13} className="text-primary-600 ml-1 inline" />
+      : <ChevronDown size={13} className="text-primary-600 ml-1 inline" />;
+  };
 
   return (
     <div className="space-y-5">
@@ -378,11 +407,17 @@ export default function Submissions() {
               <thead>
                 <tr>
                   <th className="table-th">Código</th>
-                  <th className="table-th">Título</th>
+                  <th className="table-th cursor-pointer select-none hover:text-primary-600" onClick={() => handleSort('title')}>
+                    Título<SortIcon col="title" />
+                  </th>
                   <th className="table-th">Eje Temático</th>
-                  <th className="table-th">Autores</th>
+                  <th className="table-th cursor-pointer select-none hover:text-primary-600" onClick={() => handleSort('name')}>
+                    Autores<SortIcon col="name" />
+                  </th>
                   <th className="table-th">Estado</th>
-                  <th className="table-th">Fecha</th>
+                  <th className="table-th cursor-pointer select-none hover:text-primary-600" onClick={() => handleSort('date')}>
+                    Fecha<SortIcon col="date" />
+                  </th>
                   <th className="table-th">Acciones</th>
                 </tr>
               </thead>
@@ -457,7 +492,7 @@ export default function Submissions() {
             <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
               <div className="flex items-center gap-3">
                 <p className="text-xs text-gray-400">
-                  Mostrando {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, submissions?.length ?? 0)} de {submissions?.length ?? 0}
+                  Mostrando {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, sortedSubmissions.length)} de {sortedSubmissions.length}
                 </p>
                 <select
                   value={pageSize}
