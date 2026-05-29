@@ -55,4 +55,21 @@ export const certificatesApi = {
   /** Elimina un certificado (admin) */
   remove: (id: string) =>
     api.delete(`/certificates/${id}`).then((r) => r.data),
+
+  /** Búsqueda pública por email o número de certificado */
+  searchPublic: (q: string) =>
+    api.get<Array<{
+      id: string;
+      certificateNumber: string;
+      verificationCode: string;
+      authorName: string;
+      titleEs: string;
+      productTypeName: string;
+      issuedAt: string;
+      emailSentAt: string | null;
+    }>>('/certificates/public/search', { params: { q } }).then((r) => r.data),
+
+  /** URL de descarga pública por código de verificación */
+  getPublicDownload: (code: string) =>
+    api.get<{ url: string; fileName: string }>(`/certificates/public/download/${code}`).then((r) => r.data),
 };

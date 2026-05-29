@@ -107,8 +107,11 @@ export default function SubmissionDetail() {
 
   const assignMutation = useMutation({
     mutationFn: (evaluatorId: string) => submissionsApi.assignEvaluator(id!, evaluatorId),
-    onSuccess: () => toast.success('Evaluador asignado'),
-    onError:   () => toast.error('Error al asignar evaluador'),
+    onSuccess: () => {
+      toast.success('Evaluador asignado');
+      qc.invalidateQueries({ queryKey: ['submission', id] });
+    },
+    onError: () => toast.error('Error al asignar evaluador'),
   });
 
   const ptStatusMutation = useMutation({
