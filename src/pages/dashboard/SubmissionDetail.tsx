@@ -53,12 +53,12 @@ const TRANSITIONS: Record<SubmissionStatus, SubmissionStatus[]> = {
   received:           ['under_review', 'withdrawn'],
   under_review:       ['approved', 'rejected', 'revision_requested', 'withdrawn'],
   revision_requested: ['under_review', 'rejected', 'withdrawn'],
-  approved:           ['scheduled', 'rejected'],
+  approved:           ['scheduled', 'rejected', 'executed', 'under_review'],
   rejected:           ['under_review'],
   withdrawn:          [],
   scheduled:          ['approved', 'executed'],
-  executed:           ['certificate_sent', 'scheduled'],
-  certificate_sent:   ['executed'],
+  executed:           ['certificate_sent', 'scheduled', 'approved'],
+  certificate_sent:   ['executed', 'approved', 'scheduled', 'under_review'],
 };
 
 export default function SubmissionDetail() {
@@ -105,6 +105,12 @@ export default function SubmissionDetail() {
     queryFn: () => productTypesApi.getAll(true),
   });
 
+  const { data: submissionCerts } = useQuery({
+    queryKey: ['submission-certs', id],
+    queryFn: () => certificatesApi.getAll({ submissionId: id }),
+    enabled: !!id && user?.role === 'admin',
+  });
+
   const assignMutation = useMutation({
     mutationFn: (evaluatorId: string) => submissionsApi.assignEvaluator(id!, evaluatorId),
     onSuccess: () => {
@@ -125,6 +131,7 @@ export default function SubmissionDetail() {
     onSuccess: () => {
       toast.success('Estatus por tipo de producto actualizado');
       qc.invalidateQueries({ queryKey: ['submission', id] });
+      qc.invalidateQueries({ queryKey: ['submission-certs', id] });
     },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Error al cambiar estatus'),
   });
@@ -549,9 +556,22 @@ export default function SubmissionDetail() {
               const pt            = ptMap[ptId] ?? { id: ptId, name: sub.productType?.name ?? ptId } as ScientificProductType;
               const currentStatus = (statuses[ptId] ?? 'received') as SubmissionStatus;
               const cfg2          = STATUS_CONFIG[currentStatus];
-              const allowed2      = (TRANSITIONS[currentStatus] ?? []).filter(s => s !== 'certificate_sent');
+              const isApproved    = currentStatus === 'approved';
               const isExecuted    = currentStatus === 'executed';
               const isSent        = currentStatus === 'certificate_sent';
+              const isBookChapter = pt.name.toLowerCase().includes('cap') && pt.name.toLowerCase().includes('libro');
+              const allowed2      = (TRANSITIONS[currentStatus] ?? [])
+                .filter(s => s !== 'certificate_sent')
+                // 'ejecutada' desde 'aprobada' solo para capítulo de libro
+                .filter(s => !(s === 'executed'    && isApproved && !isBookChapter))
+                // 'aprobada' desde 'ejecutada' o 'certificado enviado' solo para capítulo de libro
+                .filter(s => !(s === 'approved'     && (isExecuted || isSent) && !isBookChapter))
+                // 'en revisión' desde 'aprobada' o 'certificado enviado' solo para capítulo de libro
+                .filter(s => !(s === 'under_review' && (isApproved || isSent) && !isBookChapter))
+                // 'programada' desde 'certificado enviado' solo para capítulo de libro
+                .filter(s => !(s === 'scheduled'    && isSent && !isBookChapter));
+              const approvalCertSent = isBookChapter && isApproved &&
+                (submissionCerts ?? []).some(c => c.productTypeId === ptId && !!c.emailSentAt);
               const ptHistory     = (sub.statusHistory ?? []).filter(h => h.productTypeId === ptId);
               const ptFiles       = (sub.files ?? []).filter(f => f.productTypeId === ptId).sort((a, b) => b.version - a.version);
               const ptActiveFile  = ptFiles.find(f => f.isActive);
@@ -576,8 +596,41 @@ export default function SubmissionDetail() {
                       {isSent ? 'Certificados enviados a los ponentes' : 'Listo para generar certificados (solo ponentes marcados)'}
                     </div>
                   )}
+                  {isBookChapter && isApproved && (
+                    <div className={`flex items-center gap-2 mb-4 text-xs rounded-lg px-3 py-2 ${approvalCertSent ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
+                      <Award size={14} />
+                      {approvalCertSent
+                        ? 'Certificado de aceptación ya enviado — revierta el estado para regenerarlo'
+                        : 'Aprobado para Publicación — puede enviar el certificado de aprobación'}
+                    </div>
+                  )}
 
-                  {/* Botón generar certificados */}
+                  {/* Botón enviar certificado de aprobación (solo Capítulo del Libro en estado aprobado) */}
+                  {user?.role === 'admin' && isBookChapter && isApproved && (
+                    <button
+                      onClick={async () => {
+                        setGeneratingCert(ptId);
+                        try {
+                          const result = await certificatesApi.generateAndSend(id!, ptId);
+                          toast.success(`Certificado de aprobación generado y enviado (${result.sent} envío(s))`);
+                          qc.invalidateQueries({ queryKey: ['submission', id] });
+                          qc.invalidateQueries({ queryKey: ['submission-certs', id] });
+                        } catch (err: any) {
+                          toast.error(err.response?.data?.message || 'Error al enviar el certificado');
+                        } finally { setGeneratingCert(null); }
+                      }}
+                      disabled={generatingCert === ptId || approvalCertSent}
+                      className="mb-4 mx-auto flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold py-2 px-6 rounded-lg transition-colors"
+                    >
+                      {generatingCert === ptId
+                        ? <><Loader2 size={14} className="animate-spin" /> Enviando...</>
+                        : approvalCertSent
+                          ? <><CheckCircle2 size={14} /> Certificado Enviado</>
+                          : <><Send size={14} /> Enviar Certificado</>}
+                    </button>
+                  )}
+
+                  {/* Botón generar certificados (ejecutado) */}
                   {user?.role === 'admin' && isExecuted && (
                     <button
                       onClick={async () => {
@@ -618,7 +671,7 @@ export default function SubmissionDetail() {
                               className="form-input text-xs resize-none"
                             />
                             {/* ISBN obligatorio para Capítulo de Libro al marcar ejecutado */}
-                            {allowed2.includes('executed' as SubmissionStatus) &&
+                            {(allowed2 as string[]).includes('executed') &&
                               (pt.name.toLowerCase().includes('cap') && pt.name.toLowerCase().includes('libro')) && (
                               <div>
                                 <label className="block text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-1">

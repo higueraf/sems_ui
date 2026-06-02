@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   Search, Filter, Eye, ChevronDown, ChevronUp, ChevronsUpDown,
-  Mail, X, Send, AlertTriangle, CheckCircle, Loader2,
+  Mail, X, Send, AlertTriangle, CheckCircle, Loader2, Download,
 } from 'lucide-react';
 import RichTextEditor from '../../components/ui/RichTextEditor';
 import { eventsApi } from '../../api/events.api';
@@ -280,6 +280,58 @@ export default function Submissions() {
     enabled: !!event?.id,
   });
 
+  const handleExportCsv = () => {
+    const rows = sortedSubmissions;
+    if (rows.length === 0) return;
+
+    const headers = [
+      'Código', 'Título', 'Eje Temático', 'Tipo de Producción',
+      'Estado Global', 'Fecha Postulación',
+      'Orden', 'Nombre Autor', 'Email', 'Institución', 'País', 'Correspondiente', 'Ponente',
+    ];
+
+    const lines: string[] = [headers.map(h => `"${h}"`).join(',')];
+
+    for (const sub of rows) {
+      const statusLabel = STATUS_CONFIG[sub.status]?.label ?? sub.status;
+      const allIds = sub.productTypeIds && sub.productTypeIds.length > 0
+        ? sub.productTypeIds
+        : (sub.productType?.id ? [sub.productType.id] : []);
+      // Tipo de producción: usar nombre del productType principal
+      const ptName = sub.productType?.name ?? allIds.join(' / ');
+      const date = formatDate(sub.createdAt);
+
+      const authors = sub.authors.length > 0 ? sub.authors : [null];
+      for (const author of authors) {
+        const cell = (v: string) => `"${(v ?? '').replace(/"/g, '""')}"`;
+        lines.push([
+          cell(sub.referenceCode),
+          cell(sub.titleEs),
+          cell(sub.thematicAxis?.name ?? ''),
+          cell(ptName),
+          cell(statusLabel),
+          cell(date),
+          author ? String(author.authorOrder + 1) : '',
+          author ? cell(author.fullName) : '""',
+          author ? cell(author.email) : '""',
+          author ? cell(author.affiliation ?? '') : '""',
+          author ? cell(author.country?.name ?? '') : '""',
+          author ? (author.isCorresponding ? '"Sí"' : '"No"') : '""',
+          author ? (author.isPresenter ? '"Sí"' : '"No"') : '""',
+        ].join(','));
+      }
+    }
+
+    const csv = '\ufeff' + lines.join('\r\n'); // BOM para Excel
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `postulaciones_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleSort = (col: 'name' | 'title' | 'date') => {
     if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortBy(col); setSortDir('asc'); }
@@ -326,6 +378,16 @@ export default function Submissions() {
       <div className="flex items-center justify-between">
         <h1 className="font-heading font-bold text-2xl text-gray-900">Postulaciones</h1>
         <div className="flex items-center gap-3">
+          {/* Botón exportar CSV */}
+          <button
+            onClick={handleExportCsv}
+            disabled={!sortedSubmissions.length}
+            className="btn-secondary flex items-center gap-2 text-sm disabled:opacity-50"
+            title="Exportar lista de postulaciones con autores"
+          >
+            <Download size={15} />
+            <span className="hidden sm:inline">Exportar</span>
+          </button>
           {/* Botón de correo masivo */}
           <button
             onClick={() => setShowBulkModal(true)}
