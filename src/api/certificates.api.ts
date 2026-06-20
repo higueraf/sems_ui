@@ -52,6 +52,12 @@ export const certificatesApi = {
       emailSentAt?: string;
     }>(`/certificates/verify/${code}`).then((r) => r.data),
 
+  /** Regenera el PDF y reenvía el correo solo a UN certificado específico */
+  regenerateAndSendOne: (id: string) =>
+    api.post<{ generated: number; sent: number; failed: number }>(
+      `/certificates/${id}/regenerate-and-send`,
+    ).then((r) => r.data),
+
   /** Elimina un certificado (admin) */
   remove: (id: string) =>
     api.delete(`/certificates/${id}`).then((r) => r.data),

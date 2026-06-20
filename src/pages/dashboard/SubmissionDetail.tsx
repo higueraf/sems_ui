@@ -77,6 +77,7 @@ export default function SubmissionDetail() {
   const [ptIsbn,            setPtIsbn]             = useState<Record<string, string>>({});
   const [ptSelectedStatus,  setPtSelectedStatus]   = useState<Record<string, SubmissionStatus>>({});
   const [generatingCert,    setGeneratingCert]     = useState<string | null>(null);
+  const [regeneratingCert,  setRegeneratingCert]   = useState<string | null>(null);
   const [togglingPresenter, setTogglingPresenter]  = useState<string | null>(null);
   // Document upload/activate
   const [docUploadPtId,     setDocUploadPtId]      = useState<string | null>(null);
@@ -849,6 +850,53 @@ export default function SubmissionDetail() {
 
                     {/* ── Columna derecha ───────────────────────────────────── */}
                     <div className="space-y-5 lg:pl-5 mt-5 lg:mt-0">
+
+                      {/* Certificados por autor */}
+                      {user?.role === 'admin' && (() => {
+                        const ptCerts = (submissionCerts ?? []).filter(c => c.productTypeId === ptId);
+                        if (ptCerts.length === 0) return null;
+                        return (
+                          <div>
+                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Certificados</p>
+                            <div className="space-y-2">
+                              {ptCerts.map((cert) => (
+                                <div key={cert.id} className="flex items-center justify-between gap-2 p-2.5 rounded-xl border border-gray-100 bg-gray-50/50">
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-semibold text-gray-700 truncate">{cert.author?.fullName ?? '—'}</p>
+                                    <p className={`text-[10px] mt-0.5 ${cert.emailSentAt ? 'text-green-600' : 'text-amber-500'}`}>
+                                      {cert.emailSentAt
+                                        ? `✓ Enviado ${formatDate(cert.emailSentAt, 'dd MMM HH:mm')}`
+                                        : '⏳ Pendiente de envío'}
+                                    </p>
+                                  </div>
+                                  {user?.role === 'admin' && (
+                                    <button
+                                      onClick={async () => {
+                                        setRegeneratingCert(cert.id);
+                                        try {
+                                          await certificatesApi.regenerateAndSendOne(cert.id);
+                                          toast.success(`Certificado regenerado y enviado a ${cert.author?.fullName}`);
+                                          qc.invalidateQueries({ queryKey: ['submission-certs', id] });
+                                        } catch (err: any) {
+                                          toast.error(err.response?.data?.message || 'Error al regenerar el certificado');
+                                        } finally { setRegeneratingCert(null); }
+                                      }}
+                                      disabled={regeneratingCert === cert.id}
+                                      className="flex-shrink-0 flex items-center gap-1 text-[10px] font-semibold text-primary-600 border border-primary-200 rounded-lg px-2 py-1 hover:bg-primary-50 disabled:opacity-50 transition-colors"
+                                      title="Regenerar PDF y reenviar solo a este autor"
+                                    >
+                                      {regeneratingCert === cert.id
+                                        ? <Loader2 size={10} className="animate-spin" />
+                                        : <RefreshCw size={10} />}
+                                      Regenerar
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()}
 
                       {/* Historial de estatus */}
                       <div>
