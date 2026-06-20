@@ -853,23 +853,32 @@ export default function SubmissionDetail() {
 
                       {/* Certificados por autor */}
                       {user?.role === 'admin' && (() => {
-                        const ptCerts = (submissionCerts ?? []).filter(c => c.productTypeId === ptId);
-                        if (ptCerts.length === 0) return null;
+                        const allCerts = submissionCerts ?? [];
+                        // Filtro robusto: coincide por productTypeId exacto,
+                        // o si el cert no tiene productTypeId (legacy) y solo hay un tipo de producto.
+                        const ptCerts = allCerts.filter(c =>
+                          c.productTypeId === ptId ||
+                          (!c.productTypeId && allIds.length === 1),
+                        );
+                        if (allCerts.length === 0) return null;
                         return (
                           <div>
                             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Certificados</p>
-                            <div className="space-y-2">
-                              {ptCerts.map((cert) => (
-                                <div key={cert.id} className="flex items-center justify-between gap-2 p-2.5 rounded-xl border border-gray-100 bg-gray-50/50">
-                                  <div className="min-w-0">
-                                    <p className="text-xs font-semibold text-gray-700 truncate">{cert.author?.fullName ?? '—'}</p>
-                                    <p className={`text-[10px] mt-0.5 ${cert.emailSentAt ? 'text-green-600' : 'text-amber-500'}`}>
-                                      {cert.emailSentAt
-                                        ? `✓ Enviado ${formatDate(cert.emailSentAt, 'dd MMM HH:mm')}`
-                                        : '⏳ Pendiente de envío'}
-                                    </p>
-                                  </div>
-                                  {user?.role === 'admin' && (
+                            {ptCerts.length === 0 ? (
+                              <p className="text-xs text-gray-400 italic">Sin certificados para este tipo.</p>
+                            ) : (
+                              <div className="space-y-2">
+                                {ptCerts.map((cert) => (
+                                  <div key={cert.id} className="flex items-center justify-between gap-2 p-2.5 rounded-xl border border-gray-100 bg-gray-50/50">
+                                    <div className="min-w-0">
+                                      <p className="text-xs font-semibold text-gray-700 truncate">{cert.author?.fullName ?? '—'}</p>
+                                      <p className="text-[10px] text-gray-400">{cert.certificateNumber}</p>
+                                      <p className={`text-[10px] mt-0.5 ${cert.emailSentAt ? 'text-green-600' : 'text-amber-500'}`}>
+                                        {cert.emailSentAt
+                                          ? `✓ Enviado ${formatDate(cert.emailSentAt, 'dd MMM HH:mm')}`
+                                          : '⏳ Pendiente de envío'}
+                                      </p>
+                                    </div>
                                     <button
                                       onClick={async () => {
                                         setRegeneratingCert(cert.id);
@@ -890,10 +899,10 @@ export default function SubmissionDetail() {
                                         : <RefreshCw size={10} />}
                                       Regenerar
                                     </button>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         );
                       })()}
