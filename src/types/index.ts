@@ -190,7 +190,7 @@ export interface ScientificProductType {
 
 export type SubmissionStatus =
   | 'received' | 'under_review' | 'revision_requested'
-  | 'approved' | 'rejected' | 'withdrawn' | 'scheduled'
+  | 'approved' | 'rejected' | 'withdrawn' | 'cancelled' | 'scheduled'
   | 'executed' | 'certificate_sent';
 
 export type SubmissionFileType = 'manuscript' | 'correction' | 'final';

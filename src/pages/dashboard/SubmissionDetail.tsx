@@ -50,13 +50,14 @@ const FILE_TYPE_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 const TRANSITIONS: Record<SubmissionStatus, SubmissionStatus[]> = {
-  received:           ['under_review', 'withdrawn'],
-  under_review:       ['approved', 'rejected', 'revision_requested', 'withdrawn'],
-  revision_requested: ['under_review', 'rejected', 'withdrawn'],
-  approved:           ['scheduled', 'rejected', 'executed', 'under_review'],
+  received:           ['under_review', 'withdrawn', 'cancelled'],
+  under_review:       ['approved', 'rejected', 'revision_requested', 'withdrawn', 'cancelled'],
+  revision_requested: ['under_review', 'rejected', 'withdrawn', 'cancelled'],
+  approved:           ['scheduled', 'rejected', 'executed', 'under_review', 'cancelled'],
   rejected:           ['under_review'],
   withdrawn:          [],
-  scheduled:          ['approved', 'executed'],
+  cancelled:          [],
+  scheduled:          ['approved', 'executed', 'cancelled'],
   executed:           ['certificate_sent', 'scheduled', 'approved'],
   certificate_sent:   ['executed', 'approved', 'scheduled', 'under_review'],
 };
@@ -74,6 +75,7 @@ export default function SubmissionDetail() {
   const [ptNotes,           setPtNotes]            = useState<Record<string, string>>({});
   const [ptNotify,          setPtNotify]           = useState<Record<string, boolean>>({});
   const [ptIsbn,            setPtIsbn]             = useState<Record<string, string>>({});
+  const [ptSelectedStatus,  setPtSelectedStatus]   = useState<Record<string, SubmissionStatus>>({});
   const [generatingCert,    setGeneratingCert]     = useState<string | null>(null);
   const [togglingPresenter, setTogglingPresenter]  = useState<string | null>(null);
   // Document upload/activate
@@ -128,10 +130,11 @@ export default function SubmissionDetail() {
         notifyApplicant: ptNotify[productTypeId] ?? true,
         isbnCode: ptIsbn[productTypeId]?.trim() || undefined,
       }).then(r => r.data),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       toast.success('Estatus por tipo de producto actualizado');
       qc.invalidateQueries({ queryKey: ['submission', id] });
       qc.invalidateQueries({ queryKey: ['submission-certs', id] });
+      setPtSelectedStatus(prev => { const n = { ...prev }; delete n[variables.productTypeId]; return n; });
     },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Error al cambiar estatus'),
   });
@@ -696,19 +699,32 @@ export default function SubmissionDetail() {
                               Notificar al postulante por correo
                             </label>
                             <div className="space-y-1.5 pt-1">
-                              {allowed2.map((nextStatus) => {
-                                const nc = STATUS_CONFIG[nextStatus];
-                                return (
-                                  <button
-                                    key={nextStatus}
-                                    onClick={() => ptStatusMutation.mutate({ productTypeId: ptId, newStatus: nextStatus })}
-                                    disabled={ptStatusMutation.isPending}
-                                    className={`w-full py-2 px-3 rounded-lg text-xs font-semibold transition-colors ${nc?.bgColor} ${nc?.textColor} hover:opacity-80`}
-                                  >
-                                    → {nc?.label ?? nextStatus}
-                                  </button>
-                                );
-                              })}
+                              <select
+                                value={ptSelectedStatus[ptId] ?? ''}
+                                onChange={(e) => setPtSelectedStatus(prev => ({ ...prev, [ptId]: e.target.value as SubmissionStatus }))}
+                                className="form-input text-xs w-full"
+                              >
+                                <option value="">— Seleccionar nuevo estatus —</option>
+                                {allowed2.map((nextStatus) => {
+                                  const nc = STATUS_CONFIG[nextStatus];
+                                  return (
+                                    <option key={nextStatus} value={nextStatus}>
+                                      {nc?.label ?? nextStatus}
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                              <button
+                                onClick={() => {
+                                  const sel = ptSelectedStatus[ptId];
+                                  if (!sel) return;
+                                  ptStatusMutation.mutate({ productTypeId: ptId, newStatus: sel });
+                                }}
+                                disabled={ptStatusMutation.isPending || !ptSelectedStatus[ptId]}
+                                className="w-full py-2 px-3 rounded-lg text-xs font-semibold transition-colors bg-primary-600 text-white hover:bg-primary-500 disabled:opacity-40"
+                              >
+                                {ptStatusMutation.isPending ? 'Guardando...' : 'Aplicar cambio de estatus'}
+                              </button>
                             </div>
                           </div>
                         ) : (

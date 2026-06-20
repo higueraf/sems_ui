@@ -22,6 +22,7 @@ export const STATUS_CONFIG: Record<
   approved: { label: 'Aprobada', color: 'green', bgColor: 'bg-green-100', textColor: 'text-green-800' },
   rejected: { label: 'Rechazada', color: 'red', bgColor: 'bg-red-100', textColor: 'text-red-800' },
   withdrawn:          { label: 'Retirada',            color: 'gray',    bgColor: 'bg-gray-100',    textColor: 'text-gray-600'    },
+  cancelled:          { label: 'Cancelada',           color: 'gray',    bgColor: 'bg-gray-200',    textColor: 'text-gray-700'    },
   scheduled:          { label: 'Programada',          color: 'teal',    bgColor: 'bg-teal-100',    textColor: 'text-teal-800'    },
   executed:           { label: 'Ejecutado',           color: 'emerald', bgColor: 'bg-emerald-100', textColor: 'text-emerald-800' },
   certificate_sent:   { label: 'Certificado Enviado', color: 'indigo',  bgColor: 'bg-indigo-100',  textColor: 'text-indigo-800'  },
