@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
@@ -6,6 +6,7 @@ import {
   Mail, X, Send, AlertTriangle, CheckCircle, Loader2, Download,
 } from 'lucide-react';
 import RichTextEditor from '../../components/ui/RichTextEditor';
+import EventPicker from '../../components/dashboard/EventPicker';
 import { eventsApi } from '../../api/events.api';
 import { submissionsApi } from '../../api/submissions.api';
 import { thematicAxesApi, productTypesApi } from '../../api/index';
@@ -250,34 +251,42 @@ export default function Submissions() {
   const [sortBy, setSortBy] = useState<'name' | 'title' | 'date'>('date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
-  const { data: event } = useQuery({ queryKey: ['event-active'], queryFn: eventsApi.getActive });
+  const { data: activeEvent } = useQuery({ queryKey: ['event-active'], queryFn: eventsApi.getActive });
+  const [eventId, setEventId] = useState<string | undefined>(undefined);
+
+  // Por defecto se muestra el evento activo, pero el admin puede cambiarlo
+  // para consultar postulaciones de ediciones anteriores.
+  useEffect(() => {
+    if (!eventId && activeEvent?.id) setEventId(activeEvent.id);
+  }, [activeEvent, eventId]);
+
   const { data: axes } = useQuery({
-    queryKey: ['axes-admin', event?.id],
-    queryFn: () => thematicAxesApi.getAll(event!.id),
-    enabled: !!event?.id,
+    queryKey: ['axes-admin', eventId],
+    queryFn: () => thematicAxesApi.getAll(eventId!),
+    enabled: !!eventId,
   });
   const { data: productTypes } = useQuery({
     queryKey: ['product-types'],
     queryFn: () => productTypesApi.getAll(true),
   });
   const { data: submissions, isLoading } = useQuery({
-    queryKey: ['submissions', event?.id, status, axisId, productTypeId, search],
+    queryKey: ['submissions', eventId, status, axisId, productTypeId, search],
     queryFn: () =>
       submissionsApi.getAll({
-        eventId: event?.id,
+        eventId,
         status: status || undefined,
         thematicAxisId: axisId || undefined,
         productTypeId: productTypeId || undefined,
         search: search || undefined,
       }),
-    enabled: !!event?.id,
+    enabled: !!eventId,
   });
 
   // Total sin filtro para mostrar en el modal
   const { data: allSubmissions } = useQuery({
-    queryKey: ['submissions-all', event?.id],
-    queryFn: () => submissionsApi.getAll({ eventId: event?.id }),
-    enabled: !!event?.id,
+    queryKey: ['submissions-all', eventId],
+    queryFn: () => submissionsApi.getAll({ eventId }),
+    enabled: !!eventId,
   });
 
   const handleExportCsv = () => {
@@ -367,17 +376,19 @@ export default function Submissions() {
   return (
     <div className="space-y-5">
       {/* Modal de envío masivo */}
-      {showBulkModal && event?.id && (
+      {showBulkModal && eventId && (
         <BulkEmailModal
-          eventId={event.id}
+          eventId={eventId}
           totalAll={allSubmissions?.length ?? 0}
           onClose={() => setShowBulkModal(false)}
         />
       )}
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="font-heading font-bold text-2xl text-gray-900">Postulaciones</h1>
         <div className="flex items-center gap-3">
+          {/* Selector de evento */}
+          <EventPicker value={eventId} onChange={(id) => { setEventId(id); setPage(1); }} />
           {/* Botón exportar CSV */}
           <button
             onClick={handleExportCsv}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
@@ -8,12 +8,21 @@ import {
 import { certificatesApi } from '../../api/certificates.api';
 import { productTypesApi } from '../../api/index';
 import { eventsApi } from '../../api/events.api';
+import EventPicker from '../../components/dashboard/EventPicker';
 import { formatDate } from '../../utils';
 import { Certificate } from '../../types';
 
 export default function CertificatesAdmin() {
   const { data: activeEvent } = useQuery({ queryKey: ['event-active'], queryFn: eventsApi.getActive });
-  const activeEventId = activeEvent?.id;
+  const [selectedEventId, setSelectedEventId] = useState<string | undefined>(undefined);
+
+  // Por defecto se muestra el evento activo, pero el admin puede cambiarlo
+  // para consultar certificados de ediciones anteriores.
+  useEffect(() => {
+    if (!selectedEventId && activeEvent?.id) setSelectedEventId(activeEvent.id);
+  }, [activeEvent, selectedEventId]);
+
+  const activeEventId = selectedEventId;
   const qc            = useQueryClient();
 
   const [filterProductType, setFilterProductType] = useState('');
@@ -29,7 +38,7 @@ export default function CertificatesAdmin() {
       productTypeId: filterProductType || undefined,
       sent:          (filterSent as 'true' | 'false') || undefined,
     }),
-    enabled: true,
+    enabled: !!activeEventId,
   });
 
   const { data: productTypes = [] } = useQuery({
@@ -127,6 +136,8 @@ export default function CertificatesAdmin() {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Selector de evento */}
+          <EventPicker value={selectedEventId} onChange={setSelectedEventId} />
           {selected.size > 0 && (
             <button
               onClick={handleSendSelected}
