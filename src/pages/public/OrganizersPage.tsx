@@ -251,7 +251,7 @@ export default function OrganizersPage() {
         <div className="relative max-w-7xl mx-auto px-4 text-center">
           <span className={`text-[11px] font-bold uppercase tracking-[0.2em] block mb-3
             ${isDark ? 'text-primary-400' : 'text-primary-200'}`}>
-            {event?.name || 'II Simposio Internacional de Ciencia Abierta'}
+            {event?.name || 'Simposio Internacional de Ciencia Abierta'}
           </span>
           <h1 className="font-heading font-black text-4xl md:text-5xl text-white mb-3">
             Organizadores

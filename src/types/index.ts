@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'evaluator';
+export type UserRole = 'admin' | 'evaluator' | 'author';
 
 export interface User {
   id: string;
@@ -6,6 +6,47 @@ export interface User {
   firstName: string;
   lastName: string;
   role: UserRole;
+}
+
+export interface Person {
+  id: string;
+  fullName: string;
+  email: string;
+  academicTitle?: string;
+  affiliation?: string;
+  orcid?: string;
+  phone?: string;
+  countryId?: string;
+  country?: Country;
+  city?: string;
+  identityDocType?: string;
+  identityDocNumber?: string;
+  photoUrl?: string;
+  userId?: string;
+}
+
+export interface PortalSubmissionSummary {
+  id: string;
+  referenceCode: string;
+  titleEs: string;
+  titleEn?: string;
+  status: SubmissionStatus;
+  productStatuses?: Record<string, string>;
+  productTypeIds?: string[];
+  createdAt: string;
+  thematicAxis?: { id: string; name: string };
+  event?: { id: string; name: string; year: number };
+  authorCount: number;
+}
+
+export interface PortalCertificate {
+  id: string;
+  certificateNumber: string;
+  productTypeName?: string;
+  issuedAt: string;
+  emailSentAt?: string;
+  hasFile: boolean;
+  hasFileCarta: boolean;
 }
 
 export interface Country {

@@ -4,7 +4,7 @@ import { Mail, Phone, MapPin, Facebook, Instagram, Youtube, Linkedin, Twitter, B
 import { useTheme } from '../../hooks/useTheme';
 import { organizersApi } from '../../api/index';
 import { eventsApi } from '../../api/events.api';
-import { getFileUrl } from '../../utils';
+import { getFileUrl, formatEventDateRange } from '../../utils';
 
 const navLinks = [
   { to: '/', label: 'Inicio' },
@@ -45,6 +45,9 @@ export default function Footer() {
 
   // Solo instituciones visibles (personas quedan fuera del strip de logos)
   const institutions = organizers?.filter((o) => o.type === 'institution') ?? [];
+
+  const eventDateRange = formatEventDateRange(event?.startDate, event?.endDate);
+  const eventName = event?.name || 'Simposio Internacional de Ciencia Abierta';
 
   return (
     <footer>
@@ -212,7 +215,7 @@ export default function Footer() {
                     SIMPOSIO INTERNACIONAL
                   </div>
                   <div className="text-primary-300 text-[11px] font-semibold">
-                    DE CIENCIA ABIERTA 2026
+                    DE CIENCIA ABIERTA{eventDateRange ? ` ${eventDateRange.year}` : ''}
                   </div>
                 </div>
               </div>
@@ -324,7 +327,7 @@ export default function Footer() {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-2">
           <p className="text-xs text-primary-600">
-            © {year} — II Simposio Internacional de Ciencia Abierta. Todos los derechos reservados.
+            © {year} — {eventName}. Todos los derechos reservados.
           </p>
           <Link
             to="/dashboard/login"

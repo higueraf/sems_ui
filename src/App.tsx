@@ -35,6 +35,12 @@ import UsersAdmin from './pages/dashboard/UsersAdmin';
 import CertificatesAdmin from './pages/dashboard/CertificatesAdmin';
 import CertificateVerification from './pages/public/CertificateVerification';
 
+// Portal de autores
+import PortalLogin from './pages/portal/PortalLogin';
+import PortalDashboard from './pages/portal/PortalDashboard';
+import PortalSubmissionDetail from './pages/portal/PortalSubmissionDetail';
+import PortalPrivateRoute from './components/portal/PortalPrivateRoute';
+
 /**
  * Ruta protegida.
  * Mientras isInitializing=true mostramos un splash neutro para evitar
@@ -175,6 +181,13 @@ export default function App() {
                 </PrivateRoute>
               }
             />
+          </Route>
+
+          {/* Portal de autores */}
+          <Route path="/portal/login" element={<PortalLogin />} />
+          <Route path="/portal" element={<PortalPrivateRoute />}>
+            <Route index element={<PortalDashboard />} />
+            <Route path="postulacion/:id" element={<PortalSubmissionDetail />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

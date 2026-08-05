@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useQuery } from '@tanstack/react-query';
 import {
   Search, Clock, CheckCircle, FileText, Mail, Award, Download,
   Loader2, ClipboardList,
@@ -8,6 +9,7 @@ import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { submissionsApi } from '../../api/submissions.api';
 import { certificatesApi } from '../../api/certificates.api';
+import { eventsApi } from '../../api/events.api';
 import { Submission } from '../../types';
 import { STATUS_CONFIG, formatDate } from '../../utils';
 import { useTheme } from '../../hooks/useTheme';
@@ -31,6 +33,9 @@ export default function CheckStatus() {
   useScrollToTop();
 
   const [activeTab, setActiveTab] = useState<Tab>('postulaciones');
+
+  const { data: event } = useQuery({ queryKey: ['event-active'], queryFn: eventsApi.getActive });
+  const currentYear = new Date().getFullYear();
 
   // — Postulaciones —
   const [subResults, setSubResults] = useState<Submission[] | null>(null);
@@ -115,7 +120,7 @@ export default function CheckStatus() {
         </div>
         <div className="relative max-w-7xl mx-auto px-4 text-center">
           <span className={`text-[11px] font-bold uppercase tracking-[0.2em] block mb-3 ${isDark ? 'text-primary-400' : 'text-primary-200'}`}>
-            II Simposio Internacional de Ciencia Abierta
+            {event?.name || 'Simposio Internacional de Ciencia Abierta'}
           </span>
           <h1 className="font-heading font-black text-4xl md:text-5xl text-white mb-3">
             Portal de Consulta
@@ -172,7 +177,7 @@ export default function CheckStatus() {
                     <input
                       type="text"
                       className={`flex-1 px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all ${input}`}
-                      placeholder="correo@institución.edu o SEMS-2026-0001"
+                      placeholder={`correo@institución.edu o SEMS-${currentYear}-0001`}
                       {...regSub('query', { required: true })}
                     />
                     <button
@@ -295,7 +300,7 @@ export default function CheckStatus() {
                     <input
                       type="text"
                       className={`flex-1 px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent transition-all ${input}`}
-                      placeholder="correo@institución.edu o CERT-2026-0001"
+                      placeholder={`correo@institución.edu o CERT-${currentYear}-0001`}
                       {...regCert('query', { required: true })}
                     />
                     <button

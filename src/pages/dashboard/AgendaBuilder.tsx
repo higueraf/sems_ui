@@ -614,11 +614,7 @@ export default function AgendaBuilder() {
       // Si ya tenemos los tipos cargados, filtrar por tipo de producción.
       // Si aún no hay tipos (carga inicial), mostrar todo para no bloquear.
       if (ponenciaTypeIds.size === 0) return data;
-      return data.filter((s) => {
-        const primaryMatch = ponenciaTypeIds.has(s.productTypeId || '');
-        const secondaryMatch = (s.productTypeIds || []).some((id) => ponenciaTypeIds.has(id));
-        return primaryMatch || secondaryMatch;
-      });
+      return data.filter((s) => (s.productTypeIds || []).some((id) => ponenciaTypeIds.has(id)));
     },
   });
 

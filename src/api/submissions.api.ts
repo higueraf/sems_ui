@@ -150,4 +150,14 @@ export const submissionsApi = {
     attachmentName?: string;
   }) =>
     api.post<{ queued: number; message: string }>('/submissions/admin/bulk-email', data).then((r) => r.data),
+
+  // ── Gestión de autores (admin) ─────────────────────────────────────────────
+  addAuthor: (submissionId: string, dto: Record<string, any>) =>
+    api.post(`/submissions/${submissionId}/authors`, dto).then((r) => r.data),
+
+  updateAuthor: (submissionId: string, authorId: string, dto: Record<string, any>) =>
+    api.put(`/submissions/${submissionId}/authors/${authorId}`, dto).then((r) => r.data),
+
+  removeAuthor: (submissionId: string, authorId: string) =>
+    api.delete(`/submissions/${submissionId}/authors/${authorId}`).then((r) => r.data),
 };

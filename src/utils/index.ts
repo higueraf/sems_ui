@@ -50,6 +50,46 @@ export const ORGANIZER_ROLE_LABELS: Record<string, string> = {
 export const cn = (...classes: (string | undefined | null | false)[]) =>
   classes.filter(Boolean).join(' ');
 
+/** Etiquetas legibles para el formato de un evento (presencial / virtual / híbrido). */
+export const EVENT_FORMAT_LABELS: Record<string, string> = {
+  in_person: 'Presencial',
+  online: 'Virtual',
+  hybrid: 'Híbrida',
+};
+
+/** Deriva "Ciudad, País" (o el campo location como respaldo) de un evento. */
+export const getEventLocationLabel = (
+  event?: { city?: string; country?: string; location?: string } | null,
+): string => {
+  if (!event) return '';
+  return [event.city, event.country].filter(Boolean).join(', ') || event.location || '';
+};
+
+/**
+ * Formatea el rango de fechas de un evento, ej: "23–27 de noviembre" + año "2026".
+ * Devuelve null si no hay fecha de inicio disponible.
+ */
+export const formatEventDateRange = (
+  startDate?: string | null,
+  endDate?: string | null,
+): { dayLabel: string; year: string } | null => {
+  if (!startDate) return null;
+  try {
+    const start = parseISO(startDate);
+    const end = endDate ? parseISO(endDate) : start;
+    const startDay = format(start, 'd');
+    const endDay = format(end, 'd');
+    const sameMonth = format(start, 'MM-yyyy') === format(end, 'MM-yyyy');
+    const month = format(start, 'MMMM', { locale: es });
+    const dayLabel = sameMonth
+      ? (startDay === endDay ? `${startDay} de ${month}` : `${startDay}–${endDay} de ${month}`)
+      : `${startDay} ${format(start, 'MMM', { locale: es })} – ${endDay} ${format(end, 'MMM', { locale: es })}`;
+    return { dayLabel, year: format(start, 'yyyy') };
+  } catch {
+    return null;
+  }
+};
+
 /**
  * Resuelve una URL de imagen almacenada.
  * - URLs de Cloudinary (https://res.cloudinary.com/...): se devuelven tal cual.

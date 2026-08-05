@@ -258,6 +258,8 @@ export default function Workshops() {
   const bg   = isDark ? 'bg-gray-950' : 'bg-white';
   const card = isDark ? 'bg-gray-800 border-white/10' : 'bg-white border-gray-100';
 
+  const { data: activeEvent } = useQuery({ queryKey: ['event-active'], queryFn: eventsApi.getActive });
+
   const { data: events, isLoading } = useQuery({
     queryKey: ['events-workshops'],
     queryFn: eventsApi.getWorkshops,
@@ -287,7 +289,7 @@ export default function Workshops() {
         </div>
         <div className="relative max-w-7xl mx-auto px-4 text-center">
           <span className={`text-[11px] font-bold uppercase tracking-[0.2em] block mb-3 ${isDark ? 'text-primary-400' : 'text-primary-200'}`}>
-            II Simposio Internacional de Ciencia Abierta
+            {activeEvent?.name || 'Simposio Internacional de Ciencia Abierta'}
           </span>
           <h1 className="font-heading font-black text-4xl md:text-5xl text-white mb-3">
             Talleres de Capacitación

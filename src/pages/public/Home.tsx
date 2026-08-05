@@ -1,14 +1,53 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 import {
   Calendar, MapPin, Users, Award, BookOpen, Globe,
   ChevronRight, ChevronLeft, ArrowRight, FileText,
   Search, Layers, CheckCircle,
 } from 'lucide-react';
 import { eventsApi } from '../../api/events.api';
+import { EventFormat } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
 import { useScrollToTop } from '../../hooks/useScrollToTop';
+
+/* ─── Format label helper ──────────────────────────────────────────────── */
+const FORMAT_LABELS: Record<EventFormat, string> = {
+  in_person: 'Presencial',
+  online: 'Virtual',
+  hybrid: 'Híbrida',
+};
+
+/* ─── Event name splitter — separa "III Simposio Internacional" de
+   "DE CIENCIA ABIERTA" a partir del campo dinámico `event.name` ─────────── */
+function splitEventName(name?: string): { top: string; bottom: string } {
+  const fallback = { top: 'Simposio Internacional', bottom: 'DE CIENCIA ABIERTA' };
+  if (!name) return fallback;
+  const idx = name.toLowerCase().indexOf(' de ');
+  if (idx === -1) return { top: name, bottom: '' };
+  return { top: name.slice(0, idx), bottom: name.slice(idx + 1).toUpperCase() };
+}
+
+/* ─── Event date-range formatter — deriva "18–22 DE MAYO" + "2026" ───────── */
+function formatEventDateRange(startDate?: string, endDate?: string) {
+  if (!startDate) return null;
+  try {
+    const start = parseISO(startDate);
+    const end = endDate ? parseISO(endDate) : start;
+    const startDay = format(start, 'd');
+    const endDay = format(end, 'd');
+    const sameMonth = format(start, 'MM-yyyy') === format(end, 'MM-yyyy');
+    const monthLabel = format(start, 'MMMM', { locale: es }).toUpperCase();
+    const dayLabel = sameMonth
+      ? (startDay === endDay ? `${startDay} DE ${monthLabel}` : `${startDay}–${endDay} DE ${monthLabel}`)
+      : `${startDay} ${format(start, 'MMM', { locale: es }).toUpperCase()}–${endDay} ${format(end, 'MMM', { locale: es }).toUpperCase()}`;
+    return { dayLabel, year: format(start, 'yyyy') };
+  } catch {
+    return null;
+  }
+}
 
 /* ─── Countdown hook ────────────────────────────────────────────────────── */
 function calcTime(target: string) {
@@ -70,7 +109,12 @@ export default function Home() {
 
   const aboutSection = event?.pageSections?.find((s) => s.sectionKey === 'about');
   const datesSection = event?.pageSections?.find((s) => s.sectionKey === 'dates');
-  const countdown = useCountdown(event?.startDate || '2026-05-18');
+  const countdown = useCountdown(event?.startDate || '2026-11-23');
+
+  const eventNameParts = splitEventName(event?.name);
+  const eventDateRange = formatEventDateRange(event?.startDate, event?.endDate);
+  const eventFormatLabel = event?.format ? FORMAT_LABELS[event.format] : FORMAT_LABELS.hybrid;
+  const eventLocationLabel = [event?.city, event?.country].filter(Boolean).join(', ') || event?.location || 'Cartagena de Indias, Colombia';
 
   /* Carousel helpers */
   const startTimer = useCallback(() => {
@@ -151,37 +195,39 @@ export default function Home() {
               ? 'border-primary-500/35 bg-primary-800/25 text-primary-300'
               : 'border-primary-200 bg-primary-50 text-primary-700'
               }`}>
-              <Globe size={11} /> Modalidad Híbrida · Cartagena de Indias, Colombia
+              <Globe size={11} /> Modalidad {eventFormatLabel} · {eventLocationLabel}
             </div>
 
             {/* Title */}
             <h1 className="font-heading font-black leading-[1.05] mb-5">
               <span className={`block text-2xl md:text-3xl tracking-wider mb-1 uppercase ${isDark ? 'text-gray-400' : 'text-primary-500'}`}>
-                II Simposio Internacional
+                {eventNameParts.top}
               </span>
-              <span className={`block text-5xl md:text-6xl lg:text-7xl ${isDark
-                ? 'text-transparent bg-clip-text bg-gradient-to-br from-primary-300 via-primary-400 to-primary-600'
-                : 'text-primary-900'
-                }`}>
-                DE CIENCIA<br />ABIERTA
-              </span>
+              {eventNameParts.bottom && (
+                <span className={`block text-5xl md:text-6xl lg:text-7xl ${isDark
+                  ? 'text-transparent bg-clip-text bg-gradient-to-br from-primary-300 via-primary-400 to-primary-600'
+                  : 'text-primary-900'
+                  }`}>
+                  {eventNameParts.bottom}
+                </span>
+              )}
             </h1>
 
             {/* Date badge */}
             <div className="flex items-stretch w-fit mb-5">
               <div className={`border-2 px-6 py-2 font-bold tracking-[0.15em] text-lg ${isDark ? 'border-white/55 text-white' : 'border-primary-900 text-primary-900'
                 }`}>
-                18–22 DE MAYO
+                {eventDateRange?.dayLabel || 'PRÓXIMAMENTE'}
               </div>
               <div className={`px-5 py-2 font-black text-lg tracking-widest ${isDark ? 'bg-[#00ACC1] text-white' : 'bg-primary-700 text-white'
                 }`}>
-                2026
+                {eventDateRange?.year || new Date().getFullYear()}
               </div>
             </div>
 
             {/* Tagline */}
             <p className={`text-lg italic mb-8 max-w-lg ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-              "Innovación para Transformar el Conocimiento en Sociedad"
+              "{event?.tagline || 'Innovación para Transformar el Conocimiento en Sociedad'}"
             </p>
 
             {/* CTA Buttons */}
@@ -240,11 +286,11 @@ export default function Home() {
           }`}>
           <div className="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-center gap-6 text-sm">
             {[
-              { icon: <Award size={13} />, label: '80 Horas Certificadas' },
-              { icon: <Users size={13} />, label: '+500 Participantes' },
-              { icon: <BookOpen size={13} />, label: '274 Presentaciones' },
-              { icon: <Layers size={13} />, label: '6 Ejes Temáticos' },
-              { icon: <MapPin size={13} />, label: 'Cartagena de Indias' },
+              { icon: <Award size={13} />, label: `${event?.certifiedHours ?? 80} Horas Certificadas` },
+              { icon: <Users size={13} />, label: `${event?.expectedAttendees ? '+' + event.expectedAttendees : '+500'} Participantes` },
+              { icon: <BookOpen size={13} />, label: `${event?.maxPresentations ?? 274} Presentaciones` },
+              { icon: <Layers size={13} />, label: `${event?.thematicAxes?.length || 6} Ejes Temáticos` },
+              { icon: <MapPin size={13} />, label: event?.city || eventLocationLabel },
             ].map(({ icon, label }) => (
               <span key={label} className={`flex items-center gap-2 ${isDark ? 'text-gray-500' : 'text-primary-100'}`}>
                 <span className={isDark ? 'text-primary-500' : 'text-primary-300'}>{icon}</span>
@@ -342,7 +388,7 @@ export default function Home() {
               <div>
                 <span className={`text-[11px] font-bold uppercase tracking-[0.2em] block mb-2 ${green}`}>Sobre el Simposio</span>
                 <h2 className={`font-heading font-black text-3xl md:text-4xl mb-1 ${heading}`}>
-                  {aboutSection.title || 'II Simposio Internacional de Ciencia Abierta'}
+                  {aboutSection.title || event?.name || 'Simposio Internacional de Ciencia Abierta'}
                 </h2>
                 <div className={`w-14 h-1.5 rounded-full mb-6 ${divider}`} />
 
@@ -380,8 +426,8 @@ export default function Home() {
               <div className="grid grid-cols-2 gap-5">
                 {[
                   { icon: <Award size={38} />, value: `${event?.certifiedHours || 80}h`, label: 'Horas Certificadas', alt: false },
-                  { icon: <Users size={38} />, value: '+500', label: 'Participantes Esperados', alt: true },
-                  { icon: <BookOpen size={38} />, value: '~274', label: 'Presentaciones', alt: false },
+                  { icon: <Users size={38} />, value: event?.expectedAttendees ? `+${event.expectedAttendees}` : '+500', label: 'Participantes Esperados', alt: true },
+                  { icon: <BookOpen size={38} />, value: event?.maxPresentations ? `~${event.maxPresentations}` : '~274', label: 'Presentaciones', alt: false },
                   { icon: <Globe size={38} />, value: `${event?.thematicAxes?.length || 6}`, label: 'Ejes Temáticos', alt: true },
                 ].map((stat) => (
                   <div key={stat.label} className={`rounded-2xl p-6 text-center shadow-sm transition-transform hover:-translate-y-1 ${isDark

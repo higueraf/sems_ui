@@ -237,7 +237,7 @@ export default function PreviousEvents() {
         </div>
         <div className="relative max-w-7xl mx-auto px-4 text-center">
           <span className={`text-[11px] font-bold uppercase tracking-[0.2em] block mb-3 ${isDark ? 'text-primary-400' : 'text-primary-200'}`}>
-            II Simposio Internacional de Ciencia Abierta
+            Simposio Internacional de Ciencia Abierta
           </span>
           <h1 className="font-heading font-black text-4xl md:text-5xl text-white mb-3">
             Simposios Anteriores

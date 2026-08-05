@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Menu, X, FlaskConical } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
+import { eventsApi } from '../../api/events.api';
+import { formatEventDateRange, getEventLocationLabel } from '../../utils';
 
 const navLinks = [
   { to: '/', label: 'Inicio' },
@@ -17,13 +20,20 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const { isDark } = useTheme(); // Solo para compatibilidad con estilos
 
+  const { data: event } = useQuery({ queryKey: ['event-active'], queryFn: eventsApi.getActive });
+
+  const eventName = event?.name || 'Simposio Internacional de Ciencia Abierta';
+  const eventLocationLabel = getEventLocationLabel(event) || 'Cartagena de Indias, Colombia';
+  const eventDateRange = formatEventDateRange(event?.startDate, event?.endDate);
+
   return (
     <>
       {/* ── Barra institucional superior ───────────────────────────────── */}
       <div className="bg-primary-900 text-white text-[11px] py-1.5 hidden md:block">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
           <span>
-            II Simposio Internacional de Ciencia Abierta · Cartagena de Indias, Colombia · 18–22 Mayo 2026
+            {eventName} · {eventLocationLabel}
+            {eventDateRange && ` · ${eventDateRange.dayLabel} ${eventDateRange.year}`}
           </span>
         </div>
       </div>
@@ -41,7 +51,7 @@ export default function Navbar() {
                 SIMPOSIO INTERNACIONAL
               </div>
               <div className="text-primary-200 text-[11px] font-semibold">
-                DE CIENCIA ABIERTA 2026
+                DE CIENCIA ABIERTA{eventDateRange ? ` ${eventDateRange.year}` : ''}
               </div>
             </div>
           </Link>
