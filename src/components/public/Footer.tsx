@@ -47,7 +47,7 @@ export default function Footer() {
   const institutions = organizers?.filter((o) => o.type === 'institution') ?? [];
 
   const eventDateRange = formatEventDateRange(event?.startDate, event?.endDate);
-  const eventName = event?.name || 'Simposio Internacional de Ciencia Abierta';
+  const eventName = event?.name || 'III Simposio Internacional de Ciencia Abierta 2026';
 
   return (
     <footer>

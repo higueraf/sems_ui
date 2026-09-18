@@ -11,12 +11,20 @@ import {
 import { submissionsApi } from '../../api/submissions.api';
 import { personsApi } from '../../api/persons.api';
 import { certificatesApi } from '../../api/certificates.api';
-import { usersApi, productTypesApi, countriesApi } from '../../api/index';
+import { usersApi, productTypesApi, countriesApi, universitiesApi, facultiesApi, researchGroupsApi } from '../../api/index';
 import api from '../../api/axios';
 import { useAuthStore } from '../../store/auth.store';
 import { STATUS_CONFIG, formatDate, getFileUrl } from '../../utils';
 import { SubmissionStatus, ScientificProductType, Person } from '../../types';
+import CountrySelect from '../../components/ui/CountrySelect';
+import UniversitySelect, { OTHER_UNIVERSITY_VALUE } from '../../components/ui/UniversitySelect';
 import CustomEmailModal from '../../components/ui/CustomEmailModal';
+
+const PARTICIPANT_TYPES = [
+  { value: 'profesor', label: 'Profesor/a' },
+  { value: 'estudiante', label: 'Estudiante' },
+  { value: 'profesional_graduado', label: 'Profesional Graduado/a' },
+];
 
 // ── Document helpers ──────────────────────────────────────────────────────────
 function formatFileSize(bytes?: number): string {
@@ -53,7 +61,8 @@ const FILE_TYPE_LABELS: Record<string, { label: string; color: string }> = {
 
 // ── AuthorFormModal ───────────────────────────────────────────────────────────
 interface AuthorFormState {
-  fullName: string; email: string; academicTitle: string; affiliation: string;
+  fullName: string; email: string; academicTitle: string; participantType: string;
+  universityId: string; universityName: string; facultyId: string; researchGroupId: string;
   orcid: string; phone: string; countryId: string; city: string;
   identityDocType: string; identityDocNumber: string;
   isCorresponding: boolean; isPresenter: boolean; authorOrder: string;
@@ -75,7 +84,11 @@ function AuthorFormModal({
     fullName:          initial?.fullName          ?? '',
     email:             initial?.email             ?? '',
     academicTitle:     initial?.academicTitle     ?? '',
-    affiliation:       initial?.affiliation       ?? '',
+    participantType:   initial?.participantType   ?? '',
+    universityId:      initial?.universityId      ?? '',
+    universityName:    '',
+    facultyId:         initial?.facultyId         ?? '',
+    researchGroupId:   initial?.researchGroupId   ?? '',
     orcid:             initial?.orcid             ?? '',
     phone:             initial?.phone             ?? '',
     countryId:         initial?.countryId         ?? '',
@@ -91,6 +104,24 @@ function AuthorFormModal({
     queryKey: ['countries'],
     queryFn: () => countriesApi.getAll(true),
   });
+
+  const { data: universities } = useQuery({
+    queryKey: ['universities'],
+    queryFn: () => universitiesApi.getAll({ active: true }),
+  });
+
+  const { data: faculties } = useQuery({
+    queryKey: ['faculties'],
+    queryFn: () => facultiesApi.getAll({ active: true }),
+  });
+
+  const { data: researchGroups } = useQuery({
+    queryKey: ['research-groups'],
+    queryFn: () => researchGroupsApi.getAll({ active: true }),
+  });
+
+  const selectedUniversity = universities?.find((u) => u.id === form.universityId);
+  const isHostStudent = form.participantType === 'estudiante' && selectedUniversity?.isHostInstitution;
 
   // Close on Escape
   useEffect(() => {
@@ -115,7 +146,7 @@ function AuthorFormModal({
       fullName:          p.fullName          || prev.fullName,
       email:             p.email             || prev.email,
       academicTitle:     p.academicTitle     ?? prev.academicTitle,
-      affiliation:       p.affiliation       ?? prev.affiliation,
+      universityId:      p.universityId      ?? prev.universityId,
       orcid:             p.orcid             ?? prev.orcid,
       phone:             p.phone             ?? prev.phone,
       countryId:         p.countryId         ?? prev.countryId,
@@ -140,6 +171,7 @@ function AuthorFormModal({
     const dto: Record<string, any> = { ...form };
     if (dto.authorOrder) dto.authorOrder = Number(dto.authorOrder);
     else delete dto.authorOrder;
+    if (dto.universityId === OTHER_UNIVERSITY_VALUE) delete dto.universityId;
     // Remove empty strings for optional fields
     Object.keys(dto).forEach(k => {
       if (dto[k] === '') delete dto[k];
@@ -224,9 +256,61 @@ function AuthorFormModal({
               <input className="form-input" value={form.academicTitle} onChange={set('academicTitle')} placeholder="Dr., Mg., Esp…" />
             </div>
             <div>
-              <label className="form-label">Afiliación institucional</label>
-              <input className="form-input" value={form.affiliation} onChange={set('affiliation')} />
+              <label className="form-label">Rol de Participación</label>
+              <select className="form-input" value={form.participantType} onChange={set('participantType')}>
+                <option value="">Seleccione...</option>
+                {PARTICIPANT_TYPES.map((pt) => (
+                  <option key={pt.value} value={pt.value}>{pt.label}</option>
+                ))}
+              </select>
             </div>
+            <div>
+              <label className="form-label">País</label>
+              <CountrySelect
+                countries={countries}
+                value={form.countryId}
+                onChange={(id) => setForm(prev => ({ ...prev, countryId: id, universityId: '', universityName: '', facultyId: '', researchGroupId: '' }))}
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="form-label">Afiliación institucional</label>
+              <UniversitySelect
+                universities={universities?.filter(u => u.countryId === form.countryId)}
+                disabled={!form.countryId}
+                value={form.universityId}
+                onChange={(id) => setForm(prev => ({ ...prev, universityId: id, facultyId: '', researchGroupId: '' }))}
+              />
+              {form.universityId === OTHER_UNIVERSITY_VALUE && (
+                <input
+                  className="form-input mt-2"
+                  value={form.universityName}
+                  onChange={set('universityName')}
+                  placeholder="Escriba el nombre de la universidad o institución"
+                />
+              )}
+            </div>
+            {isHostStudent && (
+              <>
+                <div>
+                  <label className="form-label">Facultad *</label>
+                  <select className="form-input" value={form.facultyId} onChange={set('facultyId')}>
+                    <option value="">Seleccione...</option>
+                    {faculties?.filter(f => f.universityId === form.universityId).map(f => (
+                      <option key={f.id} value={f.id}>{f.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label">Semillero de Investigación</label>
+                  <select className="form-input" value={form.researchGroupId} onChange={set('researchGroupId')}>
+                    <option value="">No pertenece a un semillero</option>
+                    {researchGroups?.filter(g => g.universityId === form.universityId).map(g => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
             <div>
               <label className="form-label">ORCID</label>
               <input className="form-input" value={form.orcid} onChange={set('orcid')} placeholder="0000-0000-0000-0000" />
@@ -234,15 +318,6 @@ function AuthorFormModal({
             <div>
               <label className="form-label">Teléfono</label>
               <input className="form-input" value={form.phone} onChange={set('phone')} />
-            </div>
-            <div>
-              <label className="form-label">País</label>
-              <select className="form-input" value={form.countryId} onChange={set('countryId')}>
-                <option value="">— Seleccionar —</option>
-                {countries?.map(c => (
-                  <option key={c.id} value={c.id}>{c.flagEmoji} {c.name}</option>
-                ))}
-              </select>
             </div>
             <div>
               <label className="form-label">Ciudad</label>
@@ -611,6 +686,14 @@ export default function SubmissionDetail() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-sm text-gray-900">{author.fullName}</span>
                       {author.country && <span>{author.country.flagEmoji}</span>}
+                      {author.university?.logoUrl && (
+                        <img
+                          src={getFileUrl(author.university.logoUrl)}
+                          alt={author.university.name}
+                          title={author.university.name}
+                          className="w-5 h-5 object-contain rounded bg-white border border-gray-200"
+                        />
+                      )}
                       {author.isCorresponding && (
                         <span className="badge bg-primary-100 text-primary-700 text-xs">Correspondencia</span>
                       )}
@@ -633,7 +716,7 @@ export default function SubmissionDetail() {
 
                     <div className="text-xs text-gray-500 mt-1 space-y-0.5">
                       {author.academicTitle && <p>{author.academicTitle}</p>}
-                      {author.affiliation   && <p>{author.affiliation}</p>}
+                      {(author.university?.name || author.affiliation) && <p>{author.university?.name || author.affiliation}</p>}
                       <p>{author.email}</p>
                       {author.orcid && <p>ORCID: {author.orcid}</p>}
                       {author.identityDocType && (

@@ -12,12 +12,18 @@ import { useAuthStore } from '../../store/auth.store';
 import { formatEventDateRange } from '../../utils';
 
 const schema = z.object({
+  firstName: z.string().min(2, 'Nombre requerido'),
+  lastName: z.string().min(2, 'Apellido requerido'),
   email: z.string().email('Email inválido'),
-  password: z.string().min(1, 'La contraseña es requerida'),
+  password: z.string().min(6, 'Mínimo 6 caracteres'),
+  confirmPassword: z.string().min(1, 'Confirma tu contraseña'),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Las contraseñas no coinciden',
+  path: ['confirmPassword'],
 });
 type FormValues = z.infer<typeof schema>;
 
-export default function PortalLogin() {
+export default function PortalRegister() {
   const [showPass, setShowPass] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -34,21 +40,17 @@ export default function PortalLogin() {
 
   const onSubmit = async (data: FormValues) => {
     try {
-      const { accessToken, user } = await authApi.login(data.email, data.password);
-      if (user.role !== 'author' && user.role !== 'evaluator') {
-        toast.error('Esta área es exclusiva para autores y evaluadores. Use el panel de administración.');
-        return;
-      }
+      const { accessToken, user } = await authApi.register(data.firstName, data.lastName, data.email, data.password);
       setAuth(user, accessToken);
       toast.success(`Bienvenido/a, ${user.firstName}`);
       navigate(redirect);
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Credenciales incorrectas');
+      toast.error(err.response?.data?.message || 'No se pudo crear la cuenta');
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#003918] via-[#005c2a] to-[#003918] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#003918] via-[#005c2a] to-[#003918] flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
@@ -61,12 +63,25 @@ export default function PortalLogin() {
 
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <h2 className="font-heading font-bold text-xl text-gray-800 mb-2">Iniciar Sesión</h2>
+          <h2 className="font-heading font-bold text-xl text-gray-800 mb-2">Crear cuenta</h2>
           <p className="text-sm text-gray-500 mb-6">
-            Accede con las credenciales que llegaron a tu correo al postularte.
+            Regístrate para postular tu trabajo científico y gestionar tu participación.
           </p>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="form-label">Nombres</label>
+                <input className="form-input" autoComplete="given-name" {...register('firstName')} />
+                {errors.firstName && <p className="form-error">{errors.firstName.message}</p>}
+              </div>
+              <div>
+                <label className="form-label">Apellidos</label>
+                <input className="form-input" autoComplete="family-name" {...register('lastName')} />
+                {errors.lastName && <p className="form-error">{errors.lastName.message}</p>}
+              </div>
+            </div>
+
             <div>
               <label className="form-label">Correo Electrónico</label>
               <input
@@ -85,8 +100,7 @@ export default function PortalLogin() {
                 <input
                   type={showPass ? 'text' : 'password'}
                   className="form-input pr-10"
-                  placeholder="Contraseña temporal recibida por correo"
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                   {...register('password')}
                 />
                 <button
@@ -100,29 +114,34 @@ export default function PortalLogin() {
               {errors.password && <p className="form-error">{errors.password.message}</p>}
             </div>
 
+            <div>
+              <label className="form-label">Confirmar contraseña</label>
+              <input
+                type="password"
+                className="form-input"
+                autoComplete="new-password"
+                {...register('confirmPassword')}
+              />
+              {errors.confirmPassword && <p className="form-error">{errors.confirmPassword.message}</p>}
+            </div>
+
             <button
               type="submit"
               disabled={isSubmitting}
               className="w-full py-3 px-4 bg-[#007F3A] hover:bg-[#005c2a] text-white font-semibold rounded-xl transition-colors disabled:opacity-50"
             >
-              {isSubmitting ? 'Ingresando...' : 'Acceder al portal'}
+              {isSubmitting ? 'Creando cuenta...' : 'Crear cuenta'}
             </button>
           </form>
 
-          <div className="mt-6 pt-5 border-t border-gray-100 text-center space-y-2">
+          <div className="mt-6 pt-5 border-t border-gray-100 text-center">
             <p className="text-sm text-gray-500">
-              ¿No tienes cuenta?{' '}
+              ¿Ya tienes cuenta?{' '}
               <Link
-                to={`/portal/registro${redirect !== '/portal' ? `?redirect=${encodeURIComponent(redirect)}` : ''}`}
+                to={`/portal/login${redirect !== '/portal' ? `?redirect=${encodeURIComponent(redirect)}` : ''}`}
                 className="text-[#007F3A] font-semibold hover:underline"
               >
-                Regístrate
-              </Link>
-            </p>
-            <p className="text-xs text-gray-400">
-              ¿Eres administrador o evaluador?{' '}
-              <Link to="/dashboard/login" className="text-[#007F3A] font-medium hover:underline">
-                Accede aquí
+                Inicia sesión
               </Link>
             </p>
           </div>

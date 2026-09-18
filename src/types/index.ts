@@ -1,11 +1,15 @@
 export type UserRole = 'admin' | 'evaluator' | 'author';
 
+export type ParticipantType = 'profesor' | 'estudiante' | 'profesional_graduado';
+
 export interface User {
   id: string;
   email: string;
   firstName: string;
   lastName: string;
   role: UserRole;
+  universityId?: string;
+  university?: University;
 }
 
 export interface Person {
@@ -13,7 +17,15 @@ export interface Person {
   fullName: string;
   email: string;
   academicTitle?: string;
+  participantType?: ParticipantType;
+  /** @deprecated Reemplazado por university/universityId. */
   affiliation?: string;
+  universityId?: string;
+  university?: University;
+  facultyId?: string;
+  faculty?: Faculty;
+  researchGroupId?: string;
+  researchGroup?: ResearchGroup;
   orcid?: string;
   phone?: string;
   countryId?: string;
@@ -34,19 +46,25 @@ export interface PortalSubmissionSummary {
   productStatuses?: Record<string, string>;
   productTypeIds?: string[];
   createdAt: string;
+  canEdit: boolean;
   thematicAxis?: { id: string; name: string };
   event?: { id: string; name: string; year: number };
   authorCount: number;
 }
 
+export type CertificateType = 'author' | 'peer_reviewer';
+
 export interface PortalCertificate {
   id: string;
+  certificateType?: CertificateType;
   certificateNumber: string;
   productTypeName?: string;
   issuedAt: string;
   emailSentAt?: string;
   hasFile: boolean;
   hasFileCarta: boolean;
+  submission?: { id: string; referenceCode: string; titleEs: string } | null;
+  event?: { id: string; name: string; year?: number } | null;
 }
 
 export interface Country {
@@ -55,6 +73,37 @@ export interface Country {
   isoCode: string;
   flagEmoji: string;
   flagIconUrl?: string;
+  isActive: boolean;
+}
+
+export interface University {
+  id: string;
+  name: string;
+  countryId: string;
+  country?: Country;
+  phone?: string;
+  email?: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  logoUrl?: string;
+  isHostInstitution?: boolean;
+  isActive: boolean;
+}
+
+export interface Faculty {
+  id: string;
+  name: string;
+  universityId: string;
+  university?: University;
+  isActive: boolean;
+}
+
+export interface ResearchGroup {
+  id: string;
+  name: string;
+  universityId: string;
+  university?: University;
   isActive: boolean;
 }
 
@@ -260,7 +309,15 @@ export interface SubmissionAuthor {
   submissionId: string;
   fullName: string;
   academicTitle?: string;
+  participantType?: ParticipantType;
+  /** @deprecated Reemplazado por university/universityId. */
   affiliation?: string;
+  universityId?: string;
+  university?: University;
+  facultyId?: string;
+  faculty?: Faculty;
+  researchGroupId?: string;
+  researchGroup?: ResearchGroup;
   email: string;
   orcid?: string;
   phone?: string;
@@ -378,11 +435,14 @@ export interface PaginatedResponse<T> {
 
 export interface Certificate {
   id: string;
+  certificateType?: CertificateType;
   certificateNumber: string;
-  submissionId: string;
+  submissionId?: string | null;
   submission?: Pick<Submission, 'id' | 'referenceCode' | 'titleEs' | 'eventId'>;
-  authorId: string;
+  authorId?: string | null;
   author?: Pick<SubmissionAuthor, 'id' | 'fullName' | 'email' | 'isCorresponding'>;
+  evaluatorId?: string | null;
+  evaluator?: Pick<User, 'id' | 'firstName' | 'lastName' | 'email'>;
   productTypeId?: string;
   productType?: Pick<ScientificProductType, 'id' | 'name'>;
   productTypeName?: string;

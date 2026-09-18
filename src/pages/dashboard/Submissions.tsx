@@ -323,7 +323,7 @@ export default function Submissions() {
           author ? String(author.authorOrder + 1) : '',
           author ? cell(author.fullName) : '""',
           author ? cell(author.email) : '""',
-          author ? cell(author.affiliation ?? '') : '""',
+          author ? cell(author.university?.name ?? author.affiliation ?? '') : '""',
           author ? cell(author.country?.name ?? '') : '""',
           author ? (author.isCorresponding ? '"Sí"' : '"No"') : '""',
           author ? (author.isPresenter ? '"Sí"' : '"No"') : '""',
@@ -531,9 +531,19 @@ export default function Submissions() {
                             {sub.authors.length > 1 && (
                               <p className="text-xs text-gray-400">+{sub.authors.length - 1} más</p>
                             )}
-                            {corresponding?.country && (
-                              <span className="text-base">{corresponding.country.flagEmoji}</span>
-                            )}
+                            <div className="flex items-center gap-1">
+                              {corresponding?.country && (
+                                <span className="text-base">{corresponding.country.flagEmoji}</span>
+                              )}
+                              {corresponding?.university?.logoUrl && (
+                                <img
+                                  src={corresponding.university.logoUrl}
+                                  alt={corresponding.university.name}
+                                  title={corresponding.university.name}
+                                  className="w-4 h-4 object-contain rounded bg-white border border-gray-200"
+                                />
+                              )}
+                            </div>
                           </div>
                         </td>
                         <td className="table-td">

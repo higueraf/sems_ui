@@ -34,8 +34,11 @@ api.interceptors.response.use(
     if (status === 401) {
       // Logout limpio a través del store (limpia estado + localStorage)
       useAuthStore.getState().logout();
-      if (!window.location.pathname.includes('/dashboard/login')) {
-        window.location.href = '/dashboard/login';
+      const path = window.location.pathname;
+      const isPortalArea = path.startsWith('/portal') || path === '/postular';
+      const loginPath = isPortalArea ? '/portal/login' : '/dashboard/login';
+      if (path !== loginPath) {
+        window.location.href = loginPath;
       }
     } else if (status === 403) {
       toast.error('No tiene permisos para realizar esta acción');

@@ -6,7 +6,8 @@ import {
   CheckCircle, Clock, RefreshCw, Loader2,
 } from 'lucide-react';
 import { certificatesApi } from '../../api/certificates.api';
-import { productTypesApi } from '../../api/index';
+import { productTypesApi, usersApi } from '../../api/index';
+import { submissionsApi } from '../../api/submissions.api';
 import { eventsApi } from '../../api/events.api';
 import EventPicker from '../../components/dashboard/EventPicker';
 import { formatDate } from '../../utils';
@@ -46,6 +47,29 @@ export default function CertificatesAdmin() {
     queryFn: () => productTypesApi.getAll(true),
   });
 
+  const { data: users = [] } = useQuery({ queryKey: ['users'], queryFn: usersApi.getAll });
+  const usersById = Object.fromEntries(users.map(u => [u.id, u]));
+
+  const bookChapterTypeId = productTypes.find(
+    pt => pt.name.toLowerCase().includes('cap') && pt.name.toLowerCase().includes('libro'),
+  )?.id;
+
+  const { data: bookChapterSubmissions = [] } = useQuery({
+    queryKey: ['submissions-book-chapters', activeEventId, bookChapterTypeId],
+    queryFn: () => submissionsApi.getAll({ eventId: activeEventId, productTypeId: bookChapterTypeId }),
+    enabled: !!activeEventId && !!bookChapterTypeId,
+  });
+  const reviewedChapters = bookChapterSubmissions.filter(s => !!(s as any).assignedEvaluatorId);
+
+  const { data: peerReviewerCerts = [] } = useQuery({
+    queryKey: ['certificates-peer-reviewer', activeEventId],
+    queryFn: () => certificatesApi.getAll({ eventId: activeEventId, certificateType: 'peer_reviewer' }),
+    enabled: !!activeEventId,
+  });
+  const certifiedSubmissionIds = new Set(peerReviewerCerts.map(c => c.submissionId).filter(Boolean));
+
+  const [generatingPeerCertId, setGeneratingPeerCertId] = useState<string | null>(null);
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => certificatesApi.remove(id),
     onSuccess: () => { toast.success('Certificado eliminado'); qc.invalidateQueries({ queryKey: ['certificates'] }); },
@@ -84,6 +108,21 @@ export default function CertificatesAdmin() {
       toast.error(err.response?.data?.message || 'Error en envío masivo');
     } finally {
       setBulkLoading(false);
+    }
+  };
+
+  const handleGeneratePeerReviewerCert = async (submissionId: string) => {
+    setGeneratingPeerCertId(submissionId);
+    try {
+      const r = await certificatesApi.generateAndSendPeerReviewer(submissionId);
+      if (r.sent > 0) toast.success('Certificado de par académico generado y enviado');
+      else toast.error('El certificado se generó pero no se pudo enviar el correo');
+      qc.invalidateQueries({ queryKey: ['certificates-peer-reviewer'] });
+      refetch();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Error al generar el certificado');
+    } finally {
+      setGeneratingPeerCertId(null);
     }
   };
 
@@ -192,6 +231,50 @@ export default function CertificatesAdmin() {
         </div>
       </div>
 
+      {/* Certificado de Par Académico — uno por cada capítulo de libro revisado */}
+      <div className="card">
+        <h2 className="font-heading font-semibold text-sm text-gray-800 mb-1">
+          Certificados de Par Académico — Capítulos de Libro
+        </h2>
+        <p className="text-xs text-gray-500 mb-3">
+          Se genera un certificado por cada capítulo de libro con evaluador asignado, específico
+          para ese trabajo (no uno genérico por evento).
+        </p>
+        {!bookChapterTypeId ? (
+          <p className="text-xs text-gray-400 italic">No hay un tipo de producto "Capítulo de Libro" configurado.</p>
+        ) : reviewedChapters.length === 0 ? (
+          <p className="text-xs text-gray-400 italic">No hay capítulos de libro con evaluador asignado en este evento.</p>
+        ) : (
+          <div className="space-y-2">
+            {reviewedChapters.map((sub: any) => {
+              const evaluator = usersById[sub.assignedEvaluatorId];
+              const alreadyCertified = certifiedSubmissionIds.has(sub.id);
+              return (
+                <div key={sub.id} className="flex items-center justify-between gap-3 border border-gray-100 rounded-lg px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="text-sm text-gray-800 truncate">{sub.titleEs}</p>
+                    <p className="text-xs text-gray-400 font-mono">{sub.referenceCode}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Evaluador: {evaluator ? `${evaluator.firstName} ${evaluator.lastName}` : '—'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleGeneratePeerReviewerCert(sub.id)}
+                    disabled={generatingPeerCertId === sub.id}
+                    className={`btn-sm flex items-center gap-2 flex-shrink-0 ${alreadyCertified ? 'btn-outline' : 'btn-primary'}`}
+                  >
+                    {generatingPeerCertId === sub.id
+                      ? <Loader2 size={14} className="animate-spin" />
+                      : alreadyCertified ? <RefreshCw size={14} /> : <Send size={14} />}
+                    {alreadyCertified ? 'Regenerar y reenviar' : 'Generar y enviar'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* Tabla */}
       <div className="card p-0 overflow-hidden">
         {isLoading ? (
@@ -242,17 +325,33 @@ export default function CertificatesAdmin() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <div>
-                        <p className="font-medium text-gray-800">{cert.author?.fullName}</p>
-                        <p className="text-xs text-gray-400">{cert.author?.email}</p>
-                        {cert.author?.isCorresponding && (
-                          <span className="text-xs text-primary-600 font-medium">Autor Principal</span>
-                        )}
-                      </div>
+                      {cert.certificateType === 'peer_reviewer' ? (
+                        <div>
+                          <p className="font-medium text-gray-800">
+                            {cert.evaluator ? `${cert.evaluator.firstName} ${cert.evaluator.lastName}` : ''}
+                          </p>
+                          <p className="text-xs text-gray-400">{cert.evaluator?.email}</p>
+                          <span className="text-xs text-[#007F3A] font-medium">Par Académico</span>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="font-medium text-gray-800">{cert.author?.fullName}</p>
+                          <p className="text-xs text-gray-400">{cert.author?.email}</p>
+                          {cert.author?.isCorresponding && (
+                            <span className="text-xs text-primary-600 font-medium">Autor Principal</span>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3 max-w-xs">
-                      <p className="text-gray-800 line-clamp-2 text-xs">{cert.submission?.titleEs}</p>
-                      <p className="text-gray-400 text-xs font-mono mt-0.5">{cert.submission?.referenceCode}</p>
+                      {cert.submission ? (
+                        <>
+                          <p className="text-gray-800 line-clamp-2 text-xs">{cert.submission.titleEs}</p>
+                          <p className="text-gray-400 text-xs font-mono mt-0.5">{cert.submission.referenceCode}</p>
+                        </>
+                      ) : (
+                        <p className="text-gray-400 text-xs italic">— No aplica —</p>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded">

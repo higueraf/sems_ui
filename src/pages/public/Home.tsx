@@ -23,7 +23,7 @@ const FORMAT_LABELS: Record<EventFormat, string> = {
 /* ─── Event name splitter — separa "III Simposio Internacional" de
    "DE CIENCIA ABIERTA" a partir del campo dinámico `event.name` ─────────── */
 function splitEventName(name?: string): { top: string; bottom: string } {
-  const fallback = { top: 'Simposio Internacional', bottom: 'DE CIENCIA ABIERTA' };
+  const fallback = { top: 'III Simposio Internacional', bottom: 'DE CIENCIA ABIERTA' };
   if (!name) return fallback;
   const idx = name.toLowerCase().indexOf(' de ');
   if (idx === -1) return { top: name, bottom: '' };
@@ -388,7 +388,7 @@ export default function Home() {
               <div>
                 <span className={`text-[11px] font-bold uppercase tracking-[0.2em] block mb-2 ${green}`}>Sobre el Simposio</span>
                 <h2 className={`font-heading font-black text-3xl md:text-4xl mb-1 ${heading}`}>
-                  {aboutSection.title || event?.name || 'Simposio Internacional de Ciencia Abierta'}
+                  {aboutSection.title || event?.name || 'III Simposio Internacional de Ciencia Abierta 2026'}
                 </h2>
                 <div className={`w-14 h-1.5 rounded-full mb-6 ${divider}`} />
 

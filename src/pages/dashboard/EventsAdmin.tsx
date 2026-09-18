@@ -184,7 +184,7 @@ export default function EventsAdmin() {
                 <label className="form-label">Nombre *</label>
                 <input
                   className="form-input"
-                  placeholder="Ej: II Simposio Internacional de Ciencia Abierta"
+                  placeholder="Ej: III Simposio Internacional de Ciencia Abierta"
                   value={form.name || ''}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                 />

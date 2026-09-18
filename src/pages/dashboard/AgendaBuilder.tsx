@@ -125,6 +125,14 @@ function SubmissionSearchPanel({
                     {author?.country?.flagEmoji && (
                       <span className="text-sm">{author.country.flagEmoji}</span>
                     )}
+                    {author?.university?.logoUrl && (
+                      <img
+                        src={author.university.logoUrl}
+                        alt={author.university.name}
+                        title={author.university.name}
+                        className="w-4 h-4 object-contain rounded bg-white border border-gray-200"
+                      />
+                    )}
                     {isScheduled ? (
                       <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium">Agendada</span>
                     ) : (
@@ -137,7 +145,7 @@ function SubmissionSearchPanel({
                   {author && (
                     <p className="text-[11px] text-gray-500 truncate">
                       {author.fullName}
-                      {author.affiliation && ` · ${author.affiliation}`}
+                      {(author.university?.name || author.affiliation) && ` · ${author.university?.name || author.affiliation}`}
                     </p>
                   )}
                   {s.thematicAxis && (
@@ -283,7 +291,7 @@ function SlotCard({
   const speakerName = slot.speakerName || mainAuthor?.fullName;
   const speakerPhoto = mainAuthor?.photoUrl;
   const flagEmoji = mainAuthor?.country?.flagEmoji;
-  const affiliation = slot.speakerAffiliation || mainAuthor?.affiliation;
+  const affiliation = slot.speakerAffiliation || mainAuthor?.university?.name || mainAuthor?.affiliation;
   const axis = slot.thematicAxis || slot.submission?.thematicAxis;
   const initials = speakerName
     ? speakerName.split(' ').slice(0, 2).map((w: string) => w[0]).join('').toUpperCase()
@@ -360,6 +368,14 @@ function SlotCard({
           <div className="flex items-center gap-1.5 mt-1">
             <span className="text-xs text-gray-600 truncate">{speakerName}</span>
             {flagEmoji && <span className="text-sm leading-none">{flagEmoji}</span>}
+            {mainAuthor?.university?.logoUrl && (
+              <img
+                src={mainAuthor.university.logoUrl}
+                alt={mainAuthor.university.name}
+                title={mainAuthor.university.name}
+                className="w-4 h-4 object-contain rounded bg-white border border-gray-200 flex-shrink-0"
+              />
+            )}
             {affiliation && <span className="text-xs text-gray-400 truncate hidden sm:block">· {affiliation}</span>}
           </div>
         )}
@@ -802,7 +818,7 @@ export default function AgendaBuilder() {
       submissionProductTypeId: ponenciaPtId,
       thematicAxisId: sub?.thematicAxis?.id ?? (sub as any)?.thematicAxisId ?? prev.thematicAxisId,
       speakerName: corrAuthor?.fullName ?? prev.speakerName,
-      speakerAffiliation: corrAuthor?.affiliation ?? prev.speakerAffiliation,
+      speakerAffiliation: corrAuthor?.university?.name ?? corrAuthor?.affiliation ?? prev.speakerAffiliation,
     }));
   };
 

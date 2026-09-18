@@ -51,7 +51,7 @@ function SlotCard({ slot, isDark }: { slot: AgendaSlot; isDark: boolean }) {
   const mainAuthor = slot.submission?.authors?.find((a) => a.isCorresponding) ?? slot.submission?.authors?.[0];
   const speakerName  = slot.speakerName || mainAuthor?.fullName;
   const speakerPhoto = mainAuthor?.photoUrl;
-  const affiliation  = slot.speakerAffiliation || mainAuthor?.affiliation;
+  const affiliation  = slot.speakerAffiliation || mainAuthor?.university?.name || mainAuthor?.affiliation;
   const flagEmoji    = mainAuthor?.country?.flagEmoji;
   const axis         = slot.thematicAxis || slot.submission?.thematicAxis;
   const titleText    = slot.submission?.titleEs || slot.title || '';
@@ -117,7 +117,17 @@ function SlotCard({ slot, isDark }: { slot: AgendaSlot; isDark: boolean }) {
               <div className="min-w-0">
                 <p className={`text-sm font-semibold truncate ${textTitle}`}>{speakerName}</p>
                 {affiliation && (
-                  <p className={`text-xs truncate ${textMut}`}>{affiliation}</p>
+                  <p className={`text-xs truncate flex items-center gap-1 ${textMut}`}>
+                    {mainAuthor?.university?.logoUrl && (
+                      <img
+                        src={mainAuthor.university.logoUrl}
+                        alt={mainAuthor.university.name}
+                        title={mainAuthor.university.name}
+                        className="w-3.5 h-3.5 object-contain rounded bg-white border border-gray-200 flex-shrink-0"
+                      />
+                    )}
+                    {affiliation}
+                  </p>
                 )}
               </div>
             </div>

@@ -22,7 +22,7 @@ export default function Navbar() {
 
   const { data: event } = useQuery({ queryKey: ['event-active'], queryFn: eventsApi.getActive });
 
-  const eventName = event?.name || 'Simposio Internacional de Ciencia Abierta';
+  const eventName = event?.name || 'III Simposio Internacional de Ciencia Abierta 2026';
   const eventLocationLabel = getEventLocationLabel(event) || 'Cartagena de Indias, Colombia';
   const eventDateRange = formatEventDateRange(event?.startDate, event?.endDate);
 

@@ -26,6 +26,9 @@ import SubmissionDetail from './pages/dashboard/SubmissionDetail';
 import AgendaBuilder from './pages/dashboard/AgendaBuilder';
 import EventsAdmin from './pages/dashboard/EventsAdmin';
 import CountriesAdmin from './pages/dashboard/CountriesAdmin';
+import UniversitiesAdmin from './pages/dashboard/UniversitiesAdmin';
+import FacultiesAdmin from './pages/dashboard/FacultiesAdmin';
+import ResearchGroupsAdmin from './pages/dashboard/ResearchGroupsAdmin';
 import OrganizersAdmin from './pages/dashboard/OrganizersAdmin';
 import GuidelinesAdmin from './pages/dashboard/GuidelinesAdmin';
 import ThematicAxesAdmin from './pages/dashboard/ThematicAxesAdmin';
@@ -37,9 +40,14 @@ import CertificateVerification from './pages/public/CertificateVerification';
 
 // Portal de autores
 import PortalLogin from './pages/portal/PortalLogin';
+import PortalRegister from './pages/portal/PortalRegister';
 import PortalDashboard from './pages/portal/PortalDashboard';
+import PortalSubmissionsList from './pages/portal/PortalSubmissionsList';
 import PortalSubmissionDetail from './pages/portal/PortalSubmissionDetail';
+import PortalCertificates from './pages/portal/PortalCertificates';
+import PortalAccount from './pages/portal/PortalAccount';
 import PortalPrivateRoute from './components/portal/PortalPrivateRoute';
+import PortalLayout from './components/portal/PortalLayout';
 
 /**
  * Ruta protegida.
@@ -126,6 +134,30 @@ export default function App() {
               }
             />
             <Route
+              path="universidades"
+              element={
+                <PrivateRoute adminOnly>
+                  <UniversitiesAdmin />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="facultades"
+              element={
+                <PrivateRoute adminOnly>
+                  <FacultiesAdmin />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="semilleros"
+              element={
+                <PrivateRoute adminOnly>
+                  <ResearchGroupsAdmin />
+                </PrivateRoute>
+              }
+            />
+            <Route
               path="organizadores"
               element={
                 <PrivateRoute adminOnly>
@@ -185,9 +217,15 @@ export default function App() {
 
           {/* Portal de autores */}
           <Route path="/portal/login" element={<PortalLogin />} />
+          <Route path="/portal/registro" element={<PortalRegister />} />
           <Route path="/portal" element={<PortalPrivateRoute />}>
-            <Route index element={<PortalDashboard />} />
-            <Route path="postulacion/:id" element={<PortalSubmissionDetail />} />
+            <Route element={<PortalLayout />}>
+              <Route index element={<PortalDashboard />} />
+              <Route path="postulaciones" element={<PortalSubmissionsList />} />
+              <Route path="postulacion/:id" element={<PortalSubmissionDetail />} />
+              <Route path="certificados" element={<PortalCertificates />} />
+              <Route path="cuenta" element={<PortalAccount />} />
+            </Route>
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

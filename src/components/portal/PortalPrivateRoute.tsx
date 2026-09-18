@@ -16,7 +16,7 @@ export default function PortalPrivateRoute() {
   }
 
   if (!isAuthenticated) return <Navigate to="/portal/login" replace />;
-  if (user?.role !== 'author') return <Navigate to="/dashboard" replace />;
+  if (user?.role !== 'author' && user?.role !== 'evaluator') return <Navigate to="/dashboard" replace />;
 
   return <Outlet />;
 }

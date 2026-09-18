@@ -10,6 +10,9 @@ export const authApi = {
   login: (email: string, password: string) =>
     api.post<LoginResponse>('/auth/login', { email, password }).then((r) => r.data),
 
+  register: (firstName: string, lastName: string, email: string, password: string) =>
+    api.post<LoginResponse>('/auth/register', { firstName, lastName, email, password }).then((r) => r.data),
+
   getProfile: () =>
     api.get<User>('/auth/me').then((r) => r.data),
 };

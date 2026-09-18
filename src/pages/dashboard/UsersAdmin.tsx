@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { Plus, Edit2, Trash2, X, Check, Shield } from 'lucide-react';
-import { usersApi } from '../../api/index';
+import { usersApi, countriesApi, universitiesApi } from '../../api/index';
 import { User } from '../../types';
 import { formatDate } from '../../utils';
+import CountrySelect from '../../components/ui/CountrySelect';
+import UniversitySelect from '../../components/ui/UniversitySelect';
 
-interface UserForm { email: string; password: string; firstName: string; lastName: string; role: string; isActive: boolean; }
-const EMPTY: UserForm = { email: '', password: '', firstName: '', lastName: '', role: 'evaluator', isActive: true };
+interface UserForm { email: string; password: string; firstName: string; lastName: string; role: string; isActive: boolean; countryId: string; universityId: string; }
+const EMPTY: UserForm = { email: '', password: '', firstName: '', lastName: '', role: 'evaluator', isActive: true, countryId: '', universityId: '' };
 
 export default function UsersAdmin() {
   const qc = useQueryClient();
@@ -16,6 +18,8 @@ export default function UsersAdmin() {
   const [form, setForm] = useState<UserForm>(EMPTY);
 
   const { data: users, isLoading } = useQuery({ queryKey: ['users-admin'], queryFn: usersApi.getAll });
+  const { data: countries } = useQuery({ queryKey: ['countries'], queryFn: () => countriesApi.getAll(true) });
+  const { data: universities } = useQuery({ queryKey: ['universities'], queryFn: () => universitiesApi.getAll({ active: true }) });
 
   const createMutation = useMutation({
     mutationFn: (data: any) => usersApi.create(data),
@@ -32,10 +36,20 @@ export default function UsersAdmin() {
   });
 
   const close = () => { setShowForm(false); setEditing(null); setForm(EMPTY); };
-  const openEdit = (u: User) => { setEditing(u); setForm({ email: u.email, password: '', firstName: u.firstName, lastName: u.lastName, role: u.role, isActive: true }); setShowForm(true); };
+  const openEdit = (u: User) => {
+    setEditing(u);
+    setForm({
+      email: u.email, password: '', firstName: u.firstName, lastName: u.lastName, role: u.role, isActive: true,
+      countryId: u.university?.countryId ?? '', universityId: u.universityId ?? '',
+    });
+    setShowForm(true);
+  };
   const handleSave = () => {
     if (!form.email || !form.firstName || !form.lastName) return toast.error('Campos requeridos incompletos');
-    const data: any = { email: form.email, firstName: form.firstName, lastName: form.lastName, role: form.role, isActive: form.isActive };
+    const data: any = {
+      email: form.email, firstName: form.firstName, lastName: form.lastName, role: form.role, isActive: form.isActive,
+      universityId: form.universityId || undefined,
+    };
     if (!editing && !form.password) return toast.error('Contraseña requerida para nuevos usuarios');
     if (form.password) data.password = form.password;
     if (editing) updateMutation.mutate({ id: editing.id, data });
@@ -131,6 +145,27 @@ export default function UsersAdmin() {
                   <option value="evaluator">Evaluador</option>
                   <option value="admin">Administrador</option>
                 </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="form-label">País</label>
+                  <CountrySelect
+                    countries={countries}
+                    value={form.countryId}
+                    onChange={(id) => setForm({ ...form, countryId: id, universityId: '' })}
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Universidad</label>
+                  <UniversitySelect
+                    universities={universities?.filter((u) => u.countryId === form.countryId)}
+                    disabled={!form.countryId}
+                    disabledPlaceholder="Elija un país primero"
+                    allowOther={false}
+                    value={form.universityId}
+                    onChange={(id) => setForm({ ...form, universityId: id })}
+                  />
+                </div>
               </div>
             </div>
             <div className="p-5 pt-0 flex gap-3 justify-end">

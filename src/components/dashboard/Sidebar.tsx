@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FileText, Calendar, Settings, Globe, Users, BookOpen,
-  Sliders, LogOut, X, Tag, Layout, Cpu, ExternalLink, Award,
+  Sliders, LogOut, X, Tag, Layout, Cpu, ExternalLink, Award, GraduationCap, Sprout,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import { cn } from '../../utils';
@@ -19,6 +19,9 @@ const adminLinks = [
   { to: '/dashboard/tipos-producto', label: 'Tipos de Producto', icon: Cpu },
   { to: '/dashboard/organizadores', label: 'Organizadores', icon: Users },
   { to: '/dashboard/paises', label: 'Países', icon: Globe },
+  { to: '/dashboard/universidades', label: 'Universidades', icon: GraduationCap },
+  { to: '/dashboard/facultades', label: 'Facultades', icon: BookOpen },
+  { to: '/dashboard/semilleros', label: 'Semilleros', icon: Sprout },
   { to: '/dashboard/pautas', label: 'Pautas', icon: BookOpen },
   { to: '/dashboard/contenido', label: 'Contenido Web', icon: Layout },
   { to: '/dashboard/usuarios', label: 'Usuarios', icon: Users },

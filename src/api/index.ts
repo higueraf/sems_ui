@@ -1,5 +1,5 @@
 import api from './axios';
-import { Country, Organizer, OrganizerMember, Guideline, ThematicAxis, ScientificProductType, User, EventPageSection } from '../types';
+import { Country, University, Faculty, ResearchGroup, Organizer, OrganizerMember, Guideline, ThematicAxis, ScientificProductType, User, EventPageSection } from '../types';
 
 export const countriesApi = {
   getAll: (active?: boolean) =>
@@ -10,6 +10,63 @@ export const countriesApi = {
     api.patch<Country>(`/countries/${id}`, data).then((r) => r.data),
   remove: (id: string) =>
     api.delete(`/countries/${id}`).then((r) => r.data),
+};
+
+export const universitiesApi = {
+  getAll: (params?: { countryId?: string; active?: boolean }) =>
+    api.get<University[]>('/universities', {
+      params: {
+        ...(params?.countryId ? { countryId: params.countryId } : {}),
+        ...(params?.active ? { active: 'true' } : {}),
+      },
+    }).then((r) => r.data),
+  create: (data: Partial<University>) =>
+    api.post<University>('/universities', data).then((r) => r.data),
+  update: (id: string, data: Partial<University>) =>
+    api.patch<University>(`/universities/${id}`, data).then((r) => r.data),
+  remove: (id: string) =>
+    api.delete(`/universities/${id}`).then((r) => r.data),
+  uploadLogo: (id: string, file: File) => {
+    const form = new FormData();
+    form.append('logo', file);
+    return api
+      .post<University>(`/universities/${id}/logo`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data);
+  },
+};
+
+export const facultiesApi = {
+  getAll: (params?: { universityId?: string; active?: boolean }) =>
+    api.get<Faculty[]>('/faculties', {
+      params: {
+        ...(params?.universityId ? { universityId: params.universityId } : {}),
+        ...(params?.active ? { active: 'true' } : {}),
+      },
+    }).then((r) => r.data),
+  create: (data: Partial<Faculty>) =>
+    api.post<Faculty>('/faculties', data).then((r) => r.data),
+  update: (id: string, data: Partial<Faculty>) =>
+    api.patch<Faculty>(`/faculties/${id}`, data).then((r) => r.data),
+  remove: (id: string) =>
+    api.delete(`/faculties/${id}`).then((r) => r.data),
+};
+
+export const researchGroupsApi = {
+  getAll: (params?: { universityId?: string; active?: boolean }) =>
+    api.get<ResearchGroup[]>('/research-groups', {
+      params: {
+        ...(params?.universityId ? { universityId: params.universityId } : {}),
+        ...(params?.active ? { active: 'true' } : {}),
+      },
+    }).then((r) => r.data),
+  create: (data: Partial<ResearchGroup>) =>
+    api.post<ResearchGroup>('/research-groups', data).then((r) => r.data),
+  update: (id: string, data: Partial<ResearchGroup>) =>
+    api.patch<ResearchGroup>(`/research-groups/${id}`, data).then((r) => r.data),
+  remove: (id: string) =>
+    api.delete(`/research-groups/${id}`).then((r) => r.data),
 };
 
 export const organizersApi = {

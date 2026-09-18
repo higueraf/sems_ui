@@ -6,6 +6,7 @@ interface CertificateFilters {
   productTypeId?: string;
   submissionId?: string;
   sent?: 'true' | 'false';
+  certificateType?: 'author' | 'peer_reviewer';
 }
 
 export const certificatesApi = {
@@ -33,6 +34,13 @@ export const certificatesApi = {
     api.post<{ processed: number; generated: number; sent: number; failed: number }>(
       '/certificates/bulk-generate-and-send',
       { eventId, productTypeId },
+    ).then((r) => r.data),
+
+  /** Genera y envía manualmente el certificado de "Par Académico" a un evaluador */
+  generateAndSendPeerReviewer: (submissionId: string) =>
+    api.post<{ generated: number; sent: number; failed: number }>(
+      '/certificates/generate-and-send-peer-reviewer',
+      { submissionId },
     ).then((r) => r.data),
 
   /** URL firmada para re-descargar el PDF de un certificado */
