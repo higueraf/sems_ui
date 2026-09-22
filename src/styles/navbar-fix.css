@@ -127,6 +127,21 @@ a, button {
   font-weight: 500 !important;
 }
 
+/* Restaurar texto blanco en botones de acción (pisado por la regla anterior) */
+.btn-primary,
+.btn-accent,
+.btn-danger {
+  color: #ffffff !important;
+}
+
+.btn-outline {
+  color: #007F3A !important;
+}
+
+.btn-outline:hover {
+  color: #ffffff !important;
+}
+
 /* Transiciones suaves */
 .transition-colors {
   transition: color 0.2s ease, background-color 0.2s ease !important;
