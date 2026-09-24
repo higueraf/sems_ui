@@ -482,7 +482,16 @@ export default function SubmissionForm({ defaultAuthor, onSuccess, title = 'Post
       const status = err?.response?.status;
       const msg = err?.response?.data?.message;
 
-      if (!err?.response) {
+      // Un rechazo por tamaño a nivel de Nginx ocurre antes de llegar a la app y, al
+      // ser cross-origin, el navegador lo reporta como error de red (sin `response`)
+      // en vez de un 413 legible. Si el payload era pesado, es más probable que sea
+      // esto que un problema real de conectividad.
+      const totalUploadBytes = [...Object.values(productFiles), ...authorPhotos, ...authorIdDocs]
+        .reduce((sum, f) => sum + (f?.size ?? 0), 0);
+
+      if (!err?.response && totalUploadBytes > 8 * 1024 * 1024) {
+        toast.error('El archivo es demasiado grande para el servidor. Reduzca el tamaño del archivo e intente de nuevo.');
+      } else if (!err?.response) {
         toast.error('Sin conexión con el servidor. Verifique su conexión e intente de nuevo.');
       } else if (status === 413) {
         toast.error('El archivo es demasiado grande para el servidor. Reduzca el tamaño del archivo e intente de nuevo.');
