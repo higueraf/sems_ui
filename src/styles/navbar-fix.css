@@ -142,6 +142,15 @@ a, button {
   color: #ffffff !important;
 }
 
+/* Restaurar color del texto en el sidebar del Portal de Autores (pisado por la regla "a, button") */
+.text-\[\#a0d8b3\] {
+  color: #a0d8b3 !important;
+}
+
+.hover\:text-white:hover {
+  color: #ffffff !important;
+}
+
 /* Transiciones suaves */
 .transition-colors {
   transition: color 0.2s ease, background-color 0.2s ease !important;
