@@ -79,7 +79,7 @@ export default function CertificatesAdmin() {
   const executedEntries = allSubmissions.flatMap((sub: any) => {
     const ids = sub.productTypeIds ?? (sub.productTypeId ? [sub.productTypeId] : []);
     return ids
-      .filter((ptId: string) => (sub.productStatuses ?? {})[ptId] === 'executed')
+      .filter((ptId: string) => ['executed', 'certificate_sent'].includes((sub.productStatuses ?? {})[ptId]))
       .map((ptId: string) => ({ sub, ptId }));
   });
   const authorCertifiedKeys = new Set(
@@ -272,7 +272,18 @@ export default function CertificatesAdmin() {
                       </p>
                     </div>
                     <button
-                      onClick={() => handleGeneratePeerReviewerCert(sub.id)}
+                      onClick={() => {
+                        if (alreadyCertified) {
+                          const evaluatorName = evaluator ? `${evaluator.firstName} ${evaluator.lastName}` : 'el evaluador asignado';
+                          const ok = confirm(
+                            `¿Regenerar el certificado de par académico de ${evaluatorName}?\n\n` +
+                            'Se volverá a generar el PDF y se reenviará por correo al evaluador (el número de certificado se conserva). ' +
+                            'Úselo solo si necesita corregir algún dato o reenviar porque el correo anterior no llegó.',
+                          );
+                          if (!ok) return;
+                        }
+                        handleGeneratePeerReviewerCert(sub.id);
+                      }}
                       disabled={generatingPeerCertId === sub.id}
                       className={`btn-sm flex items-center gap-2 flex-shrink-0 ${alreadyCertified ? 'btn-outline' : 'btn-primary'}`}
                     >
@@ -326,7 +337,17 @@ export default function CertificatesAdmin() {
                       </p>
                     </div>
                     <button
-                      onClick={() => handleGenerateAuthorCert(sub.id, ptId)}
+                      onClick={() => {
+                        if (alreadyCertified) {
+                          const ok = confirm(
+                            `¿Regenerar el certificado de "${productTypesById[ptId]?.name ?? 'este tipo de producto'}" para "${sub.titleEs}"?\n\n` +
+                            'Se volverá a generar el PDF y se reenviará por correo al autor/ponente (el número de certificado se conserva). ' +
+                            'Úselo solo si necesita corregir algún dato o reenviar porque el correo anterior no llegó.',
+                          );
+                          if (!ok) return;
+                        }
+                        handleGenerateAuthorCert(sub.id, ptId);
+                      }}
                       disabled={generatingAuthorCertKey === key}
                       className={`btn-sm flex items-center gap-2 flex-shrink-0 ${alreadyCertified ? 'btn-outline' : 'btn-primary'}`}
                     >
