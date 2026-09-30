@@ -1053,6 +1053,16 @@ export default function SubmissionDetail() {
                   {user?.role === 'admin' && isBookChapter && sub.assignedEvaluatorId && (
                     <button
                       onClick={async () => {
+                        if (peerCertSent) {
+                          const evaluator = users?.find(u => u.id === sub.assignedEvaluatorId);
+                          const evaluatorName = evaluator ? `${evaluator.firstName} ${evaluator.lastName}` : 'el evaluador asignado';
+                          const ok = confirm(
+                            `¿Regenerar el certificado de par académico de ${evaluatorName}?\n\n` +
+                            'Se volverá a generar el PDF y se reenviará por correo al evaluador (el número de certificado se conserva). ' +
+                            'Úselo solo si necesita corregir algún dato o reenviar porque el correo anterior no llegó.',
+                          );
+                          if (!ok) return;
+                        }
                         setGeneratingPeerCert(true);
                         try {
                           const result = await certificatesApi.generateAndSendPeerReviewer(id!);
