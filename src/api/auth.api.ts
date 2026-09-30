@@ -15,4 +15,10 @@ export const authApi = {
 
   getProfile: () =>
     api.get<User>('/auth/me').then((r) => r.data),
+
+  forgotPassword: (email: string) =>
+    api.post<{ success: true }>('/auth/forgot-password', { email }).then((r) => r.data),
+
+  resetPassword: (token: string, newPassword: string) =>
+    api.post<{ success: true }>('/auth/reset-password', { token, newPassword }).then((r) => r.data),
 };

@@ -98,6 +98,11 @@ export default function PortalLogin() {
                 </button>
               </div>
               {errors.password && <p className="form-error">{errors.password.message}</p>}
+              <div className="text-right mt-1.5">
+                <Link to="/olvide-contrasena" className="text-xs text-[#007F3A] hover:underline">
+                  ¿Olvidó su contraseña?
+                </Link>
+              </div>
             </div>
 
             <button

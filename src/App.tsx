@@ -20,6 +20,8 @@ import Workshops from './pages/public/Workshops';
 // Dashboard pages
 import DashboardLayout from './components/dashboard/DashboardLayout';
 import Login from './pages/dashboard/Login';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
 import DashboardHome from './pages/dashboard/DashboardHome';
 import Submissions from './pages/dashboard/Submissions';
 import SubmissionDetail from './pages/dashboard/SubmissionDetail';
@@ -109,6 +111,8 @@ export default function App() {
 
           {/* Dashboard */}
           <Route path="/dashboard/login" element={<Login />} />
+          <Route path="/olvide-contrasena" element={<ForgotPassword />} />
+          <Route path="/restablecer-contrasena" element={<ResetPassword />} />
           <Route
             path="/dashboard"
             element={

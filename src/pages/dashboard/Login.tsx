@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { LogIn, Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
@@ -79,6 +79,11 @@ export default function Login() {
                 </button>
               </div>
               {errors.password && <p className="form-error">{errors.password.message}</p>}
+              <div className="text-right mt-1.5">
+                <Link to="/olvide-contrasena" className="text-xs text-primary-600 hover:underline">
+                  ¿Olvidó su contraseña?
+                </Link>
+              </div>
             </div>
 
             <button type="submit" disabled={isSubmitting} className="btn-primary w-full flex items-center justify-center gap-2 text-base py-3.5">
