@@ -54,7 +54,7 @@ import PortalLayout from './components/portal/PortalLayout';
  * Mientras isInitializing=true mostramos un splash neutro para evitar
  * el flash de redirección al login antes de que se valide el token.
  */
-function PrivateRoute({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) {
+function PrivateRoute({ children, adminOnly = false, staffOnly = false }: { children: React.ReactNode; adminOnly?: boolean; staffOnly?: boolean }) {
   const { isAuthenticated, isInitializing, user } = useAuthStore();
 
   // Esperar validación del token antes de tomar decisiones de navegación
@@ -70,6 +70,10 @@ function PrivateRoute({ children, adminOnly = false }: { children: React.ReactNo
   }
 
   if (!isAuthenticated) return <Navigate to="/dashboard/login" replace />;
+  // Las cuentas de autor no tienen acceso al panel administrativo: se les
+  // redirige a su propio portal en vez de mostrarles una vista rota llena
+  // de errores "No tiene permisos" (el backend sí las bloquea correctamente).
+  if (staffOnly && user?.role === 'author') return <Navigate to="/portal" replace />;
   if (adminOnly && user?.role !== 'admin') return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
@@ -108,7 +112,7 @@ export default function App() {
           <Route
             path="/dashboard"
             element={
-              <PrivateRoute>
+              <PrivateRoute staffOnly>
                 <DashboardLayout />
               </PrivateRoute>
             }
