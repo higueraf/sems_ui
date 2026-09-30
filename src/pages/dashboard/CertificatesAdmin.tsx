@@ -122,7 +122,7 @@ export default function CertificatesAdmin() {
     if (!activeEventId) { toast.error('Seleccione un evento primero'); return; }
     setBulkLoading(true);
     try {
-      // No se aplica filterProductType: ese filtro vive en la pestaña Historial y no debe
+      // No se aplica filterProductType: ese filtro vive en la pestaña Listado General y no debe
       // afectar silenciosamente este envío masivo de Autores/Ponentes.
       const r = await certificatesApi.bulkGenerateAndSend(activeEventId);
       toast.success(`Procesadas ${r.processed} postulaciones · ${r.sent} certificados enviados`);
@@ -224,7 +224,7 @@ export default function CertificatesAdmin() {
         {[
           { key: 'peer' as const,    label: 'Par Académico',      count: reviewedChapters.length },
           { key: 'author' as const,  label: 'Autores / Ponentes', count: executedEntries.length },
-          { key: 'history' as const, label: 'Historial',          count: certs.length },
+          { key: 'history' as const, label: 'Listado General',    count: certs.length },
         ].map(tab => (
           <button
             key={tab.key}
