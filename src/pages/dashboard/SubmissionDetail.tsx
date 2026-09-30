@@ -411,6 +411,7 @@ export default function SubmissionDetail() {
   const [ptIsbn,            setPtIsbn]             = useState<Record<string, string>>({});
   const [ptSelectedStatus,  setPtSelectedStatus]   = useState<Record<string, SubmissionStatus>>({});
   const [generatingCert,    setGeneratingCert]     = useState<string | null>(null);
+  const [generatingPeerCert, setGeneratingPeerCert] = useState(false);
   const [regeneratingCert,  setRegeneratingCert]   = useState<string | null>(null);
   const [togglingPresenter, setTogglingPresenter]  = useState<string | null>(null);
   // Document upload/activate
@@ -989,6 +990,7 @@ export default function SubmissionDetail() {
                 .filter(s => !(s === 'scheduled'    && isSent && !isBookChapter));
               const approvalCertSent = isBookChapter && isApproved &&
                 (submissionCerts ?? []).some(c => c.productTypeId === ptId && !!c.emailSentAt);
+              const peerCertSent = (submissionCerts ?? []).some(c => c.certificateType === 'peer_reviewer' && !!c.emailSentAt);
               const ptHistory     = (sub.statusHistory ?? []).filter(h => h.productTypeId === ptId);
               const ptFiles       = (sub.files ?? []).filter(f => f.productTypeId === ptId).sort((a, b) => b.version - a.version);
               const ptActiveFile  = ptFiles.find(f => f.isActive);
@@ -1044,6 +1046,31 @@ export default function SubmissionDetail() {
                         : approvalCertSent
                           ? <><CheckCircle2 size={14} /> Certificado Enviado</>
                           : <><Send size={14} /> Enviar Certificado</>}
+                    </button>
+                  )}
+
+                  {/* Botón emitir certificado de par académico (evaluador asignado) */}
+                  {user?.role === 'admin' && isBookChapter && sub.assignedEvaluatorId && (
+                    <button
+                      onClick={async () => {
+                        setGeneratingPeerCert(true);
+                        try {
+                          const result = await certificatesApi.generateAndSendPeerReviewer(id!);
+                          if (result.sent > 0) toast.success('Certificado de par académico generado y enviado');
+                          else toast.error('El certificado se generó pero no se pudo enviar el correo');
+                          qc.invalidateQueries({ queryKey: ['submission-certs', id] });
+                        } catch (err: any) {
+                          toast.error(err.response?.data?.message || 'Error al generar el certificado de par académico');
+                        } finally { setGeneratingPeerCert(false); }
+                      }}
+                      disabled={generatingPeerCert}
+                      className="mb-4 mx-auto flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold py-2 px-6 rounded-lg transition-colors"
+                    >
+                      {generatingPeerCert
+                        ? <><Loader2 size={14} className="animate-spin" /> Enviando...</>
+                        : peerCertSent
+                          ? <><RefreshCw size={14} /> Regenerar Certificado de Par Académico</>
+                          : <><Award size={14} /> Emitir Certificado de Par Académico</>}
                     </button>
                   )}
 
