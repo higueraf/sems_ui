@@ -3,7 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
   Upload, Download, Award, CheckCircle, Clock, AlertCircle, XCircle,
-  Pencil, X, FileText, Lock, UserPlus, Trash2, Loader2,
+  Pencil, X, FileText, Lock, UserPlus, Trash2, Loader2, Camera, CreditCard,
 } from 'lucide-react';
 import { portalApi } from '../../api/portal.api';
 import { countriesApi, universitiesApi, facultiesApi, researchGroupsApi } from '../../api/index';
@@ -218,11 +218,240 @@ function AddAuthorModal({
   );
 }
 
+function EditAuthorModal({
+  author, onSubmit, onClose, isPending, onUploadPhoto, onUploadDoc, isUploadingPhoto, isUploadingDoc,
+}: {
+  author: any;
+  onSubmit: (data: Record<string, any>) => void;
+  onClose: () => void;
+  isPending: boolean;
+  onUploadPhoto: (file: File) => void;
+  onUploadDoc: (file: File) => void;
+  isUploadingPhoto: boolean;
+  isUploadingDoc: boolean;
+}) {
+  const [form, setForm] = useState<AddAuthorFormState>({
+    fullName: author.fullName ?? '',
+    email: author.email ?? '',
+    academicTitle: author.academicTitle ?? '',
+    participantType: author.participantType ?? '',
+    universityId: author.universityId ?? '',
+    universityName: '',
+    facultyId: author.facultyId ?? '',
+    researchGroupId: author.researchGroupId ?? '',
+    orcid: author.orcid ?? '',
+    phone: author.phone ?? '',
+    countryId: author.countryId ?? '',
+    city: author.city ?? '',
+    isPresenter: author.isPresenter ?? true,
+  });
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: countries } = useQuery({ queryKey: ['countries'], queryFn: () => countriesApi.getAll(true) });
+  const { data: universities } = useQuery({ queryKey: ['universities'], queryFn: () => universitiesApi.getAll({ active: true }) });
+  const { data: faculties } = useQuery({ queryKey: ['faculties'], queryFn: () => facultiesApi.getAll({ active: true }) });
+  const { data: researchGroups } = useQuery({ queryKey: ['research-groups'], queryFn: () => researchGroupsApi.getAll({ active: true }) });
+
+  const selectedUniversity = universities?.find((u) => u.id === form.universityId);
+  const isHostStudent = form.participantType === 'estudiante' && selectedUniversity?.isHostInstitution;
+
+  const set = (field: keyof AddAuthorFormState) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+      setForm((prev) => ({ ...prev, [field]: e.target.value }));
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.countryId || !form.universityId) return toast.error('País y universidad son requeridos');
+    if (form.universityId === OTHER_UNIVERSITY_VALUE && form.universityName.trim().length < 2) {
+      return toast.error('Escriba el nombre de la universidad');
+    }
+    if (isHostStudent && !form.facultyId) {
+      return toast.error('La facultad es requerida para estudiantes de la institución sede');
+    }
+    const dto: Record<string, any> = { ...form };
+    if (dto.universityId === OTHER_UNIVERSITY_VALUE) delete dto.universityId;
+    onSubmit(dto);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h2 className="font-heading font-bold text-lg text-gray-900">Editar autor</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="p-5 pb-0 flex items-center gap-4">
+          <div className="relative w-16 h-16 rounded-full bg-gray-100 overflow-hidden shrink-0 border border-gray-200">
+            {author.photoUrl ? (
+              <img src={getFileUrl(author.photoUrl)} alt={author.fullName} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-300">
+                <Camera size={20} />
+              </div>
+            )}
+            {isUploadingPhoto && (
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                <Loader2 size={16} className="animate-spin text-white" />
+              </div>
+            )}
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <button
+              type="button"
+              onClick={() => photoInputRef.current?.click()}
+              className="text-xs font-semibold text-[#007F3A] hover:underline text-left"
+            >
+              Cambiar foto
+            </button>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) onUploadPhoto(f); e.target.value = ''; }}
+            />
+            <button
+              type="button"
+              onClick={() => docInputRef.current?.click()}
+              className="text-xs font-semibold text-[#007F3A] hover:underline text-left flex items-center gap-1"
+            >
+              {isUploadingDoc ? <Loader2 size={11} className="animate-spin" /> : <CreditCard size={11} />}
+              {author.hasIdentityDoc ? 'Cambiar documento de identidad' : 'Subir documento de identidad'}
+            </button>
+            <input
+              ref={docInputRef}
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) onUploadDoc(f); e.target.value = ''; }}
+            />
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <label className="form-label">Nombre completo *</label>
+              <input className="form-input" required value={form.fullName} onChange={set('fullName')} />
+            </div>
+            <div className="col-span-2">
+              <label className="form-label">Correo electrónico *</label>
+              <input type="email" className="form-input" required value={form.email} onChange={set('email')} />
+            </div>
+            <div>
+              <label className="form-label">Título académico</label>
+              <input className="form-input" value={form.academicTitle} onChange={set('academicTitle')} placeholder="Dr., Mg., Esp…" />
+            </div>
+            <div>
+              <label className="form-label">Rol de Participación</label>
+              <select className="form-input" value={form.participantType} onChange={set('participantType')}>
+                <option value="">Seleccione...</option>
+                {PARTICIPANT_TYPES.map((pt) => (
+                  <option key={pt.value} value={pt.value}>{pt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="form-label">País *</label>
+              <CountrySelect
+                countries={countries}
+                value={form.countryId}
+                onChange={(id) => setForm((prev) => ({ ...prev, countryId: id, universityId: '', universityName: '', facultyId: '', researchGroupId: '' }))}
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="form-label">Institución / Universidad *</label>
+              <UniversitySelect
+                universities={universities?.filter((u) => u.countryId === form.countryId)}
+                disabled={!form.countryId}
+                value={form.universityId}
+                onChange={(id) => setForm((prev) => ({ ...prev, universityId: id, facultyId: '', researchGroupId: '' }))}
+              />
+              {form.universityId === OTHER_UNIVERSITY_VALUE && (
+                <input
+                  className="form-input mt-2"
+                  value={form.universityName}
+                  onChange={set('universityName')}
+                  placeholder="Escriba el nombre de la universidad o institución"
+                />
+              )}
+            </div>
+            {isHostStudent && (
+              <>
+                <div>
+                  <label className="form-label">Facultad *</label>
+                  <select className="form-input" value={form.facultyId} onChange={set('facultyId')}>
+                    <option value="">Seleccione...</option>
+                    {faculties?.filter((f) => f.universityId === form.universityId).map((f) => (
+                      <option key={f.id} value={f.id}>{f.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label">Semillero de Investigación</label>
+                  <select className="form-input" value={form.researchGroupId} onChange={set('researchGroupId')}>
+                    <option value="">No pertenece a un semillero</option>
+                    {researchGroups?.filter((g) => g.universityId === form.universityId).map((g) => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
+            <div>
+              <label className="form-label">ORCID</label>
+              <input className="form-input" value={form.orcid} onChange={set('orcid')} placeholder="https://orcid.org/0000-0000-0000-0000" />
+            </div>
+            <div>
+              <label className="form-label">Teléfono</label>
+              <input className="form-input" value={form.phone} onChange={set('phone')} />
+            </div>
+            <div>
+              <label className="form-label">Ciudad</label>
+              <input className="form-input" value={form.city} onChange={set('city')} />
+            </div>
+          </div>
+
+          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <input
+              type="checkbox"
+              className="w-4 h-4 rounded accent-[#007F3A]"
+              checked={form.isPresenter}
+              onChange={(e) => setForm((prev) => ({ ...prev, isPresenter: e.target.checked }))}
+            />
+            Ponente
+          </label>
+
+          <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+            <button type="button" onClick={onClose} className="btn-outline btn-sm">
+              Cancelar
+            </button>
+            <button type="submit" disabled={isPending} className="btn-primary btn-sm flex items-center gap-1.5">
+              {isPending && <Loader2 size={13} className="animate-spin" />}
+              Guardar cambios
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function SubmissionManagePanel({ submission, onUpdated }: Props) {
   const [revisionFile, setRevisionFile] = useState<File | null>(null);
   const [revisionNotes, setRevisionNotes] = useState('');
   const [editing, setEditing] = useState(false);
   const [showAddAuthor, setShowAddAuthor] = useState(false);
+  const [editingAuthorId, setEditingAuthorId] = useState<string | null>(null);
+  const [uploadingPhotoFor, setUploadingPhotoFor] = useState<string | null>(null);
+  const [uploadingDocFor, setUploadingDocFor] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: certs = [] } = useQuery({
@@ -278,6 +507,50 @@ export default function SubmissionManagePanel({ submission, onUpdated }: Props) 
     },
     onError: (e: any) => toast.error(e.response?.data?.message || 'Error al eliminar el autor'),
   });
+
+  const editingAuthor = editingAuthorId
+    ? (submission.authors ?? []).find((a: any) => a.id === editingAuthorId)
+    : null;
+
+  const updateAuthorMutation = useMutation({
+    mutationFn: (data: Record<string, any>) => portalApi.updateAuthor(submission.id, editingAuthorId!, data),
+    onSuccess: () => {
+      toast.success('Autor actualizado');
+      setEditingAuthorId(null);
+      onUpdated();
+    },
+    onError: (e: any) => toast.error(e.response?.data?.message || 'Error al guardar los cambios del autor'),
+  });
+
+  const updateAuthorPhotoMutation = useMutation({
+    mutationFn: ({ authorId, file }: { authorId: string; file: File }) =>
+      portalApi.updateAuthorPhoto(submission.id, authorId, file),
+    onMutate: ({ authorId }) => setUploadingPhotoFor(authorId),
+    onSuccess: () => { toast.success('Foto actualizada'); onUpdated(); },
+    onError: (e: any) => toast.error(e.response?.data?.message || 'Error al subir la foto'),
+    onSettled: () => setUploadingPhotoFor(null),
+  });
+
+  const replaceAuthorIdDocMutation = useMutation({
+    mutationFn: ({ authorId, file }: { authorId: string; file: File }) =>
+      portalApi.replaceAuthorIdDoc(submission.id, authorId, file),
+    onMutate: ({ authorId }) => setUploadingDocFor(authorId),
+    onSuccess: () => { toast.success('Documento actualizado'); onUpdated(); },
+    onError: (e: any) => toast.error(e.response?.data?.message || 'Error al subir el documento'),
+    onSettled: () => setUploadingDocFor(null),
+  });
+
+  const downloadAuthorIdDoc = async (authorId: string) => {
+    try {
+      const { url, fileName } = await portalApi.getAuthorIdDocUrl(submission.id, authorId);
+      if (!url) return toast.error('Este autor no tiene documento de identidad cargado');
+      const a = document.createElement('a');
+      a.href = url; a.download = fileName ?? 'documento.pdf'; a.target = '_blank';
+      document.body.appendChild(a); a.click(); a.remove();
+    } catch {
+      toast.error('No se pudo descargar el documento');
+    }
+  };
 
   const downloadCert = async (certId: string, format: 'diploma' | 'carta') => {
     try {
@@ -547,8 +820,17 @@ export default function SubmissionManagePanel({ submission, onUpdated }: Props) 
         <div className="space-y-2">
           {(submission.authors ?? []).map((a: any) => (
             <div key={a.id} className="flex items-center gap-3 text-xs">
-              <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-[10px] shrink-0">
-                {a.authorOrder + 1}
+              <div className="relative w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-[10px] shrink-0 overflow-hidden">
+                {a.photoUrl ? (
+                  <img src={getFileUrl(a.photoUrl)} alt={a.fullName} className="w-full h-full object-cover" />
+                ) : (
+                  a.authorOrder + 1
+                )}
+                {uploadingPhotoFor === a.id && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <Loader2 size={11} className="animate-spin text-white" />
+                  </div>
+                )}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="font-semibold text-gray-700 flex items-center gap-1.5">
@@ -566,10 +848,28 @@ export default function SubmissionManagePanel({ submission, onUpdated }: Props) 
                   {[a.academicTitle, a.university?.name || a.affiliation].filter(Boolean).join(' · ')}
                 </p>
               </div>
+              {a.hasIdentityDoc && (
+                <button
+                  onClick={() => downloadAuthorIdDoc(a.id)}
+                  className="shrink-0 text-gray-300 hover:text-[#007F3A] transition-colors"
+                  title="Descargar documento de identidad"
+                >
+                  <CreditCard size={14} />
+                </button>
+              )}
               {a.isCorresponding && (
-                <span className="ml-auto text-[9px] font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full shrink-0">
+                <span className="text-[9px] font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full shrink-0">
                   Correspondiente
                 </span>
+              )}
+              {canEditAuthors && (
+                <button
+                  onClick={() => setEditingAuthorId(a.id)}
+                  className="ml-auto shrink-0 text-gray-300 hover:text-[#007F3A] transition-colors"
+                  title="Editar autor"
+                >
+                  <Pencil size={13} />
+                </button>
               )}
               {canEditAuthors && !a.isCorresponding && (
                 <button
@@ -579,7 +879,7 @@ export default function SubmissionManagePanel({ submission, onUpdated }: Props) 
                     }
                   }}
                   disabled={removeAuthorMutation.isPending}
-                  className="ml-auto shrink-0 text-gray-300 hover:text-red-500 transition-colors disabled:opacity-40"
+                  className="shrink-0 text-gray-300 hover:text-red-500 transition-colors disabled:opacity-40"
                   title="Quitar autor"
                 >
                   <Trash2 size={14} />
@@ -595,6 +895,19 @@ export default function SubmissionManagePanel({ submission, onUpdated }: Props) 
           onSubmit={(data) => addAuthorMutation.mutate(data)}
           onClose={() => setShowAddAuthor(false)}
           isPending={addAuthorMutation.isPending}
+        />
+      )}
+
+      {editingAuthor && (
+        <EditAuthorModal
+          author={editingAuthor}
+          onSubmit={(data) => updateAuthorMutation.mutate(data)}
+          onClose={() => setEditingAuthorId(null)}
+          isPending={updateAuthorMutation.isPending}
+          onUploadPhoto={(file) => updateAuthorPhotoMutation.mutate({ authorId: editingAuthor.id, file })}
+          onUploadDoc={(file) => replaceAuthorIdDocMutation.mutate({ authorId: editingAuthor.id, file })}
+          isUploadingPhoto={uploadingPhotoFor === editingAuthor.id}
+          isUploadingDoc={uploadingDocFor === editingAuthor.id}
         />
       )}
     </div>

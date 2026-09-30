@@ -26,6 +26,28 @@ export const portalApi = {
   removeAuthor: (submissionId: string, authorId: string): Promise<any> =>
     api.delete(`/portal/submissions/${submissionId}/authors/${authorId}`).then(r => r.data),
 
+  updateAuthor: (submissionId: string, authorId: string, data: Record<string, any>): Promise<any> =>
+    api.patch(`/portal/submissions/${submissionId}/authors/${authorId}`, data).then(r => r.data),
+
+  updateAuthorPhoto: (submissionId: string, authorId: string, file: File): Promise<any> => {
+    const form = new FormData();
+    form.append('photo', file, file.name);
+    return api.post(`/portal/submissions/${submissionId}/authors/${authorId}/photo`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then(r => r.data);
+  },
+
+  replaceAuthorIdDoc: (submissionId: string, authorId: string, file: File): Promise<any> => {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    return api.post(`/portal/submissions/${submissionId}/authors/${authorId}/id-doc`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then(r => r.data);
+  },
+
+  getAuthorIdDocUrl: (submissionId: string, authorId: string): Promise<{ url: string | null; fileName?: string }> =>
+    api.get(`/portal/submissions/${submissionId}/authors/${authorId}/id-doc/download`).then(r => r.data),
+
   getMyCertificates: (submissionId: string): Promise<PortalCertificate[]> =>
     api.get(`/portal/submissions/${submissionId}/certificates`).then(r => r.data),
 
