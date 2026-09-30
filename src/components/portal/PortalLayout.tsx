@@ -79,7 +79,7 @@ export default function PortalLayout() {
   return (
     <div className="min-h-screen bg-gray-50 lg:flex">
       {/* Sidebar desktop */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 bg-[#003918]">
+      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 lg:sticky lg:top-0 lg:h-screen bg-[#003918]">
         {SidebarContent}
       </aside>
 
