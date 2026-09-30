@@ -68,7 +68,27 @@ export default function CertificatesAdmin() {
   });
   const certifiedSubmissionIds = new Set(peerReviewerCerts.map(c => c.submissionId).filter(Boolean));
 
+  // Trabajos ejecutados (ponencias, capítulos, etc.) — certificado de autor/ponente
+  const { data: allSubmissions = [] } = useQuery({
+    queryKey: ['submissions-executed', activeEventId],
+    queryFn: () => submissionsApi.getAll({ eventId: activeEventId }),
+    enabled: !!activeEventId,
+  });
+  const productTypesById = Object.fromEntries(productTypes.map(pt => [pt.id, pt]));
+  const executedEntries = allSubmissions.flatMap((sub: any) => {
+    const ids = sub.productTypeIds ?? (sub.productTypeId ? [sub.productTypeId] : []);
+    return ids
+      .filter((ptId: string) => (sub.productStatuses ?? {})[ptId] === 'executed')
+      .map((ptId: string) => ({ sub, ptId }));
+  });
+  const authorCertifiedKeys = new Set(
+    certs
+      .filter(c => c.certificateType !== 'peer_reviewer' && c.submissionId && c.productTypeId)
+      .map(c => `${c.submissionId}:${c.productTypeId}`),
+  );
+
   const [generatingPeerCertId, setGeneratingPeerCertId] = useState<string | null>(null);
+  const [generatingAuthorCertKey, setGeneratingAuthorCertKey] = useState<string | null>(null);
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => certificatesApi.remove(id),
@@ -123,6 +143,22 @@ export default function CertificatesAdmin() {
       toast.error(err.response?.data?.message || 'Error al generar el certificado');
     } finally {
       setGeneratingPeerCertId(null);
+    }
+  };
+
+  const handleGenerateAuthorCert = async (submissionId: string, productTypeId: string) => {
+    const key = `${submissionId}:${productTypeId}`;
+    setGeneratingAuthorCertKey(key);
+    try {
+      const r = await certificatesApi.generateAndSend(submissionId, productTypeId);
+      if (r.sent > 0) toast.success(`${r.generated} certificado(s) generados · ${r.sent} enviados`);
+      else toast.error('El certificado se generó pero no se pudo enviar el correo');
+      qc.invalidateQueries({ queryKey: ['certificates'] });
+      refetch();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Error al generar el certificado');
+    } finally {
+      setGeneratingAuthorCertKey(null);
     }
   };
 
@@ -264,6 +300,48 @@ export default function CertificatesAdmin() {
                     className={`btn-sm flex items-center gap-2 flex-shrink-0 ${alreadyCertified ? 'btn-outline' : 'btn-primary'}`}
                   >
                     {generatingPeerCertId === sub.id
+                      ? <Loader2 size={14} className="animate-spin" />
+                      : alreadyCertified ? <RefreshCw size={14} /> : <Send size={14} />}
+                    {alreadyCertified ? 'Regenerar y reenviar' : 'Generar y enviar'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Certificados de Autores / Ponentes — uno por cada trabajo ejecutado */}
+      <div className="card">
+        <h2 className="font-heading font-semibold text-sm text-gray-800 mb-1">
+          Certificados de Autores / Ponentes
+        </h2>
+        <p className="text-xs text-gray-500 mb-3">
+          Se genera un certificado para cada autor ponente del trabajo (uno por tipo de producto
+          ejecutado). El de par académico (arriba) es aparte y solo aplica a evaluadores.
+        </p>
+        {executedEntries.length === 0 ? (
+          <p className="text-xs text-gray-400 italic">No hay trabajos ejecutados pendientes de certificar en este evento.</p>
+        ) : (
+          <div className="space-y-2">
+            {executedEntries.map(({ sub, ptId }: any) => {
+              const key = `${sub.id}:${ptId}`;
+              const alreadyCertified = authorCertifiedKeys.has(key);
+              return (
+                <div key={key} className="flex items-center justify-between gap-3 border border-gray-100 rounded-lg px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="text-sm text-gray-800 truncate">{sub.titleEs}</p>
+                    <p className="text-xs text-gray-400 font-mono">{sub.referenceCode}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {productTypesById[ptId]?.name ?? 'Tipo de producto'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleGenerateAuthorCert(sub.id, ptId)}
+                    disabled={generatingAuthorCertKey === key}
+                    className={`btn-sm flex items-center gap-2 flex-shrink-0 ${alreadyCertified ? 'btn-outline' : 'btn-primary'}`}
+                  >
+                    {generatingAuthorCertKey === key
                       ? <Loader2 size={14} className="animate-spin" />
                       : alreadyCertified ? <RefreshCw size={14} /> : <Send size={14} />}
                     {alreadyCertified ? 'Regenerar y reenviar' : 'Generar y enviar'}
