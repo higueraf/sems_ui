@@ -122,7 +122,9 @@ export default function CertificatesAdmin() {
     if (!activeEventId) { toast.error('Seleccione un evento primero'); return; }
     setBulkLoading(true);
     try {
-      const r = await certificatesApi.bulkGenerateAndSend(activeEventId, filterProductType || undefined);
+      // No se aplica filterProductType: ese filtro vive en la pestaña Historial y no debe
+      // afectar silenciosamente este envío masivo de Autores/Ponentes.
+      const r = await certificatesApi.bulkGenerateAndSend(activeEventId);
       toast.success(`Procesadas ${r.processed} postulaciones · ${r.sent} certificados enviados`);
       refetch();
     } catch (err: any) {
