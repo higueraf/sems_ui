@@ -11,6 +11,8 @@ import { countriesApi, universitiesApi, facultiesApi, researchGroupsApi, product
 import CountrySelect from '../ui/CountrySelect';
 import UniversitySelect, { OTHER_UNIVERSITY_VALUE } from '../ui/UniversitySelect';
 
+const OTHER_RESEARCH_GROUP_VALUE = '__other__';
+
 const PARTICIPANT_TYPES: { value: string; label: string }[] = [
   { value: 'profesor', label: 'Profesor/a' },
   { value: 'estudiante', label: 'Estudiante' },
@@ -25,6 +27,7 @@ const authorSchema = z.object({
   universityName: z.string().optional(),
   facultyId: z.string().optional(),
   researchGroupId: z.string().optional(),
+  researchGroupName: z.string().optional(),
   emailType: z.string().min(1, 'Tipo de correo requerido'),
   email: z.string().email('Email inválido'),
   orcid: z.string().url('ORCID debe ser una URL válida').regex(/^https:\/\/orcid\.org\/\d{4}-\d{4}-\d{4}-\d{3}[\dX]$/, 'ORCID debe tener el formato https://orcid.org/XXXX-XXXX-XXXX-XXXX'),
@@ -40,7 +43,13 @@ const authorSchema = z.object({
     return !!a.universityName && a.universityName.trim().length >= 2 && !!a.countryId;
   }
   return !!a.universityId;
-}, { message: 'Seleccione una universidad (si no aparece en la lista, elija primero el país)', path: ['universityId'] });
+}, { message: 'Seleccione una universidad (si no aparece en la lista, elija primero el país)', path: ['universityId'] })
+  .refine((a) => {
+    if (a.researchGroupId === OTHER_RESEARCH_GROUP_VALUE) {
+      return !!a.researchGroupName && a.researchGroupName.trim().length >= 2;
+    }
+    return true;
+  }, { message: 'Escriba el nombre del semillero', path: ['researchGroupName'] });
 
 const formSchema = z.object({
   eventId: z.string().uuid(),
@@ -358,6 +367,7 @@ export default function SubmissionForm({ defaultAuthor, onSuccess, title = 'Post
         universityName: '',
         facultyId: '',
         researchGroupId: '',
+        researchGroupName: '',
         emailType: '',
         email: defaultAuthor?.email ?? '',
         orcid: '',
@@ -452,6 +462,7 @@ export default function SubmissionForm({ defaultAuthor, onSuccess, title = 'Post
           ...a,
           authorOrder: i,
           universityId: a.universityId === OTHER_UNIVERSITY_VALUE ? undefined : a.universityId,
+          researchGroupId: a.researchGroupId === OTHER_RESEARCH_GROUP_VALUE ? undefined : a.researchGroupId,
         })),
       };
 
@@ -669,6 +680,7 @@ export default function SubmissionForm({ defaultAuthor, onSuccess, title = 'Post
                       universityName: '',
                       facultyId: '',
                       researchGroupId: '',
+                      researchGroupName: '',
                       emailType: '',
                       email: '',
                       orcid: '',
@@ -806,6 +818,7 @@ export default function SubmissionForm({ defaultAuthor, onSuccess, title = 'Post
                             setValue(`authors.${index}.universityName`, '');
                             setValue(`authors.${index}.facultyId`, '');
                             setValue(`authors.${index}.researchGroupId`, '');
+                            setValue(`authors.${index}.researchGroupName`, '');
                           }}
                         />
                         {errors.authors?.[index]?.countryId && <p className="form-error">{errors.authors[index]?.countryId?.message}</p>}
@@ -825,6 +838,7 @@ export default function SubmissionForm({ defaultAuthor, onSuccess, title = 'Post
                             setValue(`authors.${index}.universityId`, id, { shouldValidate: true });
                             setValue(`authors.${index}.facultyId`, '');
                             setValue(`authors.${index}.researchGroupId`, '');
+                            setValue(`authors.${index}.researchGroupName`, '');
                           }}
                         />
                         {watch(`authors.${index}.universityId`) === OTHER_UNIVERSITY_VALUE && (
@@ -855,7 +869,18 @@ export default function SubmissionForm({ defaultAuthor, onSuccess, title = 'Post
                               {researchGroups?.filter((g) => g.universityId === watch(`authors.${index}.universityId`)).map((g) => (
                                 <option key={g.id} value={g.id}>{g.name}</option>
                               ))}
+                              <option value={OTHER_RESEARCH_GROUP_VALUE}>Otro (no aparece en la lista)</option>
                             </select>
+                            {watch(`authors.${index}.researchGroupId`) === OTHER_RESEARCH_GROUP_VALUE && (
+                              <input
+                                className="form-input mt-2"
+                                {...register(`authors.${index}.researchGroupName`)}
+                                placeholder="Escriba el nombre de su semillero"
+                              />
+                            )}
+                            {errors.authors?.[index]?.researchGroupName && (
+                              <p className="form-error">{errors.authors[index]?.researchGroupName?.message}</p>
+                            )}
                           </div>
                         </>
                       )}
