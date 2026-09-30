@@ -110,7 +110,8 @@ export default function CertificatesAdmin() {
     try {
       const r = await certificatesApi.send([cert.id]);
       if (r.sent > 0) {
-        toast.success(`Certificado reenviado a ${cert.author?.email}`);
+        const recipientEmail = cert.certificateType === 'peer_reviewer' ? cert.evaluator?.email : cert.author?.email;
+        toast.success(`Certificado reenviado a ${recipientEmail}`);
         refetch();
       } else {
         toast.error('No se pudo reenviar el certificado');
