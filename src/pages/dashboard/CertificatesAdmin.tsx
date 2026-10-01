@@ -32,6 +32,8 @@ export default function CertificatesAdmin() {
   const [selected,          setSelected]          = useState<Set<string>>(new Set());
   const [bulkLoading,       setBulkLoading]       = useState(false);
   const [activeTab,         setActiveTab]         = useState<'peer' | 'author' | 'history'>('peer');
+  const [peerSearch,        setPeerSearch]        = useState('');
+  const [authorSearch,      setAuthorSearch]      = useState('');
 
   const { data: certs = [], isLoading, refetch } = useQuery({
     queryKey: ['certificates', activeEventId, filterProductType, filterSent],
@@ -87,6 +89,33 @@ export default function CertificatesAdmin() {
       .filter(c => c.certificateType !== 'peer_reviewer' && c.submissionId && c.productTypeId)
       .map(c => `${c.submissionId}:${c.productTypeId}`),
   );
+
+  // Por defecto solo se muestran los pendientes de certificar; si se escribe algo en el buscador
+  // se busca entre TODOS (incluidos los ya enviados), para poder encontrar uno puntual y regenerarlo.
+  const peerSearchLower = peerSearch.trim().toLowerCase();
+  const visibleReviewedChapters = reviewedChapters.filter((sub: any) => {
+    const alreadyCertified = certifiedSubmissionIds.has(sub.id);
+    if (!peerSearchLower) return !alreadyCertified;
+    const evaluator = usersById[sub.assignedEvaluatorId];
+    const evaluatorName = evaluator ? `${evaluator.firstName} ${evaluator.lastName}`.toLowerCase() : '';
+    return (
+      sub.titleEs?.toLowerCase().includes(peerSearchLower) ||
+      sub.referenceCode?.toLowerCase().includes(peerSearchLower) ||
+      evaluatorName.includes(peerSearchLower)
+    );
+  });
+
+  const authorSearchLower = authorSearch.trim().toLowerCase();
+  const visibleExecutedEntries = executedEntries.filter(({ sub, ptId }: any) => {
+    const alreadyCertified = authorCertifiedKeys.has(`${sub.id}:${ptId}`);
+    if (!authorSearchLower) return !alreadyCertified;
+    const ptName = productTypesById[ptId]?.name?.toLowerCase() ?? '';
+    return (
+      sub.titleEs?.toLowerCase().includes(authorSearchLower) ||
+      sub.referenceCode?.toLowerCase().includes(authorSearchLower) ||
+      ptName.includes(authorSearchLower)
+    );
+  });
 
   const [generatingPeerCertId, setGeneratingPeerCertId] = useState<string | null>(null);
   const [generatingAuthorCertKey, setGeneratingAuthorCertKey] = useState<string | null>(null);
@@ -256,13 +285,33 @@ export default function CertificatesAdmin() {
             Se genera un certificado por cada capítulo de libro con evaluador asignado, específico
             para ese trabajo (no uno genérico por evento).
           </p>
+          <div className="relative mb-3">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar por título, código o evaluador (incluye ya enviados, para regenerar)..."
+              value={peerSearch}
+              onChange={e => setPeerSearch(e.target.value)}
+              className="form-input pl-9 text-sm"
+            />
+          </div>
+          {!peerSearchLower && (
+            <p className="text-xs text-gray-400 mb-3">
+              Mostrando solo pendientes de certificar ({visibleReviewedChapters.length} de {reviewedChapters.length}).
+              Para regenerar uno ya enviado, búsquelo arriba.
+            </p>
+          )}
           {!bookChapterTypeId ? (
             <p className="text-xs text-gray-400 italic">No hay un tipo de producto "Capítulo de Libro" configurado.</p>
           ) : reviewedChapters.length === 0 ? (
             <p className="text-xs text-gray-400 italic">No hay capítulos de libro con evaluador asignado en este evento.</p>
+          ) : visibleReviewedChapters.length === 0 ? (
+            <p className="text-xs text-gray-400 italic">
+              {peerSearchLower ? 'No se encontraron coincidencias.' : 'No hay certificados de par académico pendientes.'}
+            </p>
           ) : (
             <div className="space-y-2">
-              {reviewedChapters.map((sub: any) => {
+              {visibleReviewedChapters.map((sub: any) => {
                 const evaluator = usersById[sub.assignedEvaluatorId];
                 const alreadyCertified = certifiedSubmissionIds.has(sub.id);
                 return (
@@ -323,11 +372,31 @@ export default function CertificatesAdmin() {
             Se genera un certificado para cada autor ponente del trabajo (uno por tipo de producto
             ejecutado). El de par académico es aparte y solo aplica a evaluadores.
           </p>
+          <div className="relative mb-3">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar por título, código o tipo de producto (incluye ya enviados, para regenerar)..."
+              value={authorSearch}
+              onChange={e => setAuthorSearch(e.target.value)}
+              className="form-input pl-9 text-sm"
+            />
+          </div>
+          {!authorSearchLower && (
+            <p className="text-xs text-gray-400 mb-3">
+              Mostrando solo pendientes de certificar ({visibleExecutedEntries.length} de {executedEntries.length}).
+              Para regenerar uno ya enviado, búsquelo arriba.
+            </p>
+          )}
           {executedEntries.length === 0 ? (
             <p className="text-xs text-gray-400 italic">No hay trabajos ejecutados pendientes de certificar en este evento.</p>
+          ) : visibleExecutedEntries.length === 0 ? (
+            <p className="text-xs text-gray-400 italic">
+              {authorSearchLower ? 'No se encontraron coincidencias.' : 'No hay certificados de autores/ponentes pendientes.'}
+            </p>
           ) : (
             <div className="space-y-2">
-              {executedEntries.map(({ sub, ptId }: any) => {
+              {visibleExecutedEntries.map(({ sub, ptId }: any) => {
                 const key = `${sub.id}:${ptId}`;
                 const alreadyCertified = authorCertifiedKeys.has(key);
                 return (
