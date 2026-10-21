@@ -68,6 +68,18 @@ const formSchema = z.object({
   aiUsageDescription: z.string().optional(),
   pageCount: z.coerce.number().optional(),
   authors: z.array(authorSchema).min(1).max(4),
+  declaresOriginality: z.boolean().refine((v) => v === true, {
+    message: 'Debe aceptar la declaración de originalidad e ineditismo',
+  }),
+  declaresHumanAuthorship: z.boolean().refine((v) => v === true, {
+    message: 'Debe aceptar la declaración de integridad académica y autoría humana',
+  }),
+  declaresPermanenceCommitment: z.boolean().refine((v) => v === true, {
+    message: 'Debe aceptar el compromiso de permanencia y atención a evaluaciones de pares',
+  }),
+  declaresRightsAssignment: z.boolean().refine((v) => v === true, {
+    message: 'Debe aceptar la autorización y cesión no exclusiva de derechos de divulgación',
+  }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -359,6 +371,10 @@ export default function SubmissionForm({ defaultAuthor, onSuccess, title = 'Post
     defaultValues: {
       eventId: '00000000-0000-0000-0000-000000000000',
       productTypeIds: [],
+      declaresOriginality: false,
+      declaresHumanAuthorship: false,
+      declaresPermanenceCommitment: false,
+      declaresRightsAssignment: false,
       authors: [{
         fullName: defaultAuthor?.fullName ?? '',
         academicTitle: '',
@@ -390,11 +406,14 @@ export default function SubmissionForm({ defaultAuthor, onSuccess, title = 'Post
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultAuthor?.fullName, defaultAuthor?.email]);
 
-  const toggleProductType = (id: string) => {
-    const current = getValues('productTypeIds') ?? [];
-    const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
-    setValue('productTypeIds', next, { shouldValidate: true });
-  };
+  // Todo postulante debe presentar ambos tipos de producto científico: se
+  // seleccionan automáticamente y el checklist queda de solo lectura.
+  useEffect(() => {
+    if (productTypes?.length) {
+      setValue('productTypeIds', productTypes.map((pt) => pt.id), { shouldValidate: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productTypes]);
 
   /** Estudiantes de la institución sede (ej. UMAYOR) requieren facultad y ambos tipos de producto. */
   const getHostRequirementIssue = (authorsData: FormValues['authors'], productTypeIds: string[]): string | null => {
@@ -576,25 +595,17 @@ export default function SubmissionForm({ defaultAuthor, onSuccess, title = 'Post
                     {productTypes?.map((pt) => {
                       const checked = selectedProductTypeIds.includes(pt.id);
                       return (
-                        <label key={pt.id} className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-gray-50 transition-colors ${checked ? 'bg-primary-50' : ''}`}>
-                          <input type="checkbox" checked={checked} onChange={() => toggleProductType(pt.id)} className="w-4 h-4 accent-primary-500 shrink-0" />
+                        <label key={pt.id} className="flex items-center gap-3 px-3 py-2.5 bg-primary-50 cursor-not-allowed">
+                          <input type="checkbox" checked={checked} disabled className="w-4 h-4 accent-primary-500 shrink-0" />
                           <span className="text-sm text-gray-700 leading-tight">{pt.name}</span>
                         </label>
                       );
                     })}
                   </div>
-                  {selectedProductTypeIds.length > 0 && (
-                    <p className="text-xs text-primary-600 mt-1 font-medium">
-                      {selectedProductTypeIds.length} tipo{selectedProductTypeIds.length > 1 ? 's' : ''} seleccionado{selectedProductTypeIds.length > 1 ? 's' : ''}
-                    </p>
-                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    Toda postulación debe incluir ambos tipos de producto científico.
+                  </p>
                   {errors.productTypeIds && <p className="form-error">{errors.productTypeIds.message as string}</p>}
-                  {watch('authors')?.some((a) => a.participantType === 'estudiante' && hostUniversityIds.has(a.universityId ?? '')) && (
-                    <p className="text-xs text-amber-600 mt-1.5 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
-                      Al haber un/a estudiante de la institución sede en el equipo, deben seleccionarse tanto
-                      <strong> Ponencia / Comunicación Oral</strong> como <strong>Capítulo de Libro</strong>.
-                    </p>
-                  )}
                 </div>
               </div>
 
@@ -1034,6 +1045,53 @@ export default function SubmissionForm({ defaultAuthor, onSuccess, title = 'Post
                 </ul>
               </div>
 
+              <div className="space-y-3">
+                <p className="font-semibold text-gray-800">Declaraciones obligatorias</p>
+                {([
+                  {
+                    name: 'declaresOriginality' as const,
+                    title: 'Declaración de originalidad e ineditismo',
+                    text: 'Declaro que la ponencia postulada es una obra original e inédita, de mi autoría (y de los coautores registrados), y certifico que no ha sido publicada, presentada ni postulada simultáneamente en ningún otro evento, libro o revista científica.',
+                  },
+                  {
+                    name: 'declaresHumanAuthorship' as const,
+                    title: 'Integridad académica y autoría humana (Política sobre IA)',
+                    text: 'Certifico que la autoría de la investigación corresponde íntegramente a los investigadores registrados. Declaro que el manuscrito no ha sido creado de manera automatizada por herramientas de Inteligencia Artificial generativa y que asumo total responsabilidad ética sobre los datos, metodologías y contenidos expuestos.',
+                  },
+                  {
+                    name: 'declaresPermanenceCommitment' as const,
+                    title: 'Compromiso de permanencia y atención a evaluaciones de pares',
+                    text: 'Me comprometo a mantener la postulación activa durante todo el ciclo del Simposio y a no solicitar el retiro intempestivo de la ponencia una vez iniciado el arbitraje. Asimismo, adquiero el compromiso formal de atender e incorporar rigurosamente todas las observaciones y ajustes metodológicos emitidos por el comité evaluador en los plazos establecidos.',
+                  },
+                  {
+                    name: 'declaresRightsAssignment' as const,
+                    title: 'Autorización y cesión no exclusiva de derechos de divulgación',
+                    text: 'Autorizo a la Institución Universitaria Mayor de Cartagena (UMAYOR) y a su Sello Editorial a divulgar, transmitir y publicar la ponencia en las memorias del evento y en los formatos digitales o impresos derivados del Simposio, bajo la política de Acceso Abierto Diamante (Open Access), reconociendo siempre los respectivos créditos morales de autoría.',
+                  },
+                ]).map(({ name, title, text }) => (
+                  <label
+                    key={name}
+                    className="flex items-start gap-3 bg-gray-50 border border-gray-200 rounded-lg p-4 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      className="mt-1"
+                      {...register(name)}
+                    />
+                    <span className="text-sm text-gray-700">
+                      <span className="font-semibold text-gray-800 block mb-1">{title}</span>
+                      {text}
+                    </span>
+                  </label>
+                ))}
+                {(errors.declaresOriginality || errors.declaresHumanAuthorship
+                  || errors.declaresPermanenceCommitment || errors.declaresRightsAssignment) && (
+                  <p className="text-red-600 text-sm">
+                    Debe aceptar las cuatro declaraciones para poder enviar la postulación.
+                  </p>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div className="bg-gray-50 rounded-lg p-4">
                   <p className="font-semibold text-gray-600 mb-2">Título</p>
@@ -1124,8 +1182,9 @@ export default function SubmissionForm({ defaultAuthor, onSuccess, title = 'Post
             ) : (
               <button
                 type="button"
-                disabled={isSubmitting}
-                className="btn-primary cursor-pointer text-white"
+                disabled={isSubmitting || !watch('declaresOriginality') || !watch('declaresHumanAuthorship')
+                  || !watch('declaresPermanenceCommitment') || !watch('declaresRightsAssignment')}
+                className="btn-primary cursor-pointer text-white disabled:opacity-40 disabled:cursor-not-allowed"
                 onClick={handleSubmit(onSubmit, (validationErrors) => {
                   console.error('[SubmissionForm] errores de validación Zod:', validationErrors);
                   toast.error('Hay campos inválidos. Revise el formulario.');
