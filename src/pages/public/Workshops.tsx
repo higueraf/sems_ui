@@ -351,12 +351,7 @@ export default function Workshops() {
                             : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300 hover:text-primary-600'
                         }`}
                       >
-                        {ev.edition ? `${ev.edition} · ${ev.name}` : ev.name}
-                        {ev.startDate && (
-                          <span className={`ml-2 text-xs font-normal ${i === selected ? 'text-primary-200' : 'text-gray-400'}`}>
-                            {new Date(ev.startDate).getFullYear()}
-                          </span>
-                        )}
+                        {ev.name}
                       </button>
                     ))}
                   </div>
