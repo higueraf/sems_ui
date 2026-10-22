@@ -133,11 +133,6 @@ function EventPanel({ event }: { event: ScientificEvent }) {
         )}
         <div className="flex-1">
           <div className="flex flex-wrap gap-2 mb-2">
-            {event.edition && (
-              <span className="badge bg-primary-100 text-primary-700 text-xs font-bold">
-                {event.edition}
-              </span>
-            )}
             <span className="badge bg-gray-100 text-gray-600 text-xs">
               {FORMAT_LABELS[event.format] ?? event.format}
             </span>
