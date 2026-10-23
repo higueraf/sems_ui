@@ -443,6 +443,16 @@ export default function SubmissionForm({ defaultAuthor, onSuccess, title = 'Post
     return null;
   };
 
+  /** Cada tipo de producto seleccionado que requiere archivo (docx/pptx) debe tener su adjunto. */
+  const getMissingFilesIssue = (productTypeIds: string[]): string | null => {
+    const missing = productTypeIds
+      .map((ptId) => productTypes?.find((pt) => pt.id === ptId))
+      .filter((pt) => pt?.requiresFile && !productFiles[pt.id]);
+    if (!missing.length) return null;
+    const names = missing.map((pt) => pt!.name).join(' y ');
+    return `Debe adjuntar el archivo requerido para: ${names}`;
+  };
+
   const handleNext = async () => {
     const fieldsToValidate: Record<Step, (keyof FormValues)[]> = {
       info: ['thematicAxisId', 'productTypeIds', 'titleEs', 'abstractEs', 'countryId'],
@@ -455,6 +465,10 @@ export default function SubmissionForm({ defaultAuthor, onSuccess, title = 'Post
       const issue = getHostRequirementIssue(getValues('authors'), getValues('productTypeIds') ?? []);
       if (issue) { toast.error(issue); return; }
     }
+    if (valid && step === 'content') {
+      const issue = getMissingFilesIssue(getValues('productTypeIds') ?? []);
+      if (issue) { toast.error(issue); return; }
+    }
     if (valid) {
       const order: Step[] = ['info', 'authors', 'content', 'confirm'];
       const nextIndex = order.indexOf(step) + 1;
@@ -465,6 +479,9 @@ export default function SubmissionForm({ defaultAuthor, onSuccess, title = 'Post
   const onSubmit = async (data: FormValues) => {
     const eventId = event?.id;
     if (!eventId) { toast.error('No hay evento activo. Recargue la página.'); return; }
+
+    const filesIssue = getMissingFilesIssue(data.productTypeIds ?? []);
+    if (filesIssue) { toast.error(filesIssue); return; }
 
     const hostIssue = getHostRequirementIssue(data.authors, data.productTypeIds ?? []);
     if (hostIssue) { toast.error(hostIssue); return; }
