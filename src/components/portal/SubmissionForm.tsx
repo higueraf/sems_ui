@@ -558,6 +558,20 @@ export default function SubmissionForm({ defaultAuthor, onSuccess, title = 'Post
   const stepIndex = STEPS.findIndex((s) => s.key === step);
   const selectedProductTypeIds = watch('productTypeIds') ?? [];
 
+  const isClosed = !!event?.submissionDeadline && new Date() > new Date(event.submissionDeadline);
+  if (isClosed) {
+    return (
+      <div className="card text-center py-12">
+        <h1 className="font-heading font-bold text-2xl text-gray-900 mb-2">Postulaciones cerradas</h1>
+        <p className="text-gray-500">
+          El plazo de postulación para {event?.name} venció el{' '}
+          {new Date(event!.submissionDeadline!).toLocaleDateString('es-EC', { dateStyle: 'long' })}.
+          Ya no se aceptan nuevos envíos.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="text-center mb-8">
