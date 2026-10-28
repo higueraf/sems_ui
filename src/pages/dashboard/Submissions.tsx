@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Search, Filter, Eye, ChevronDown, ChevronUp, ChevronsUpDown,
   Mail, X, Send, AlertTriangle, CheckCircle, Loader2, Download, Users, ArrowLeft, FileText,
@@ -240,14 +240,37 @@ function BulkEmailModal({
 
 // ─── Pestaña de autores únicos ────────────────────────────────────────────────
 function UniqueAuthorsTab({ eventId }: { eventId?: string }) {
-  const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState<UniqueAuthor | null>(null);
+  // El autor seleccionado y el texto de búsqueda viven en la URL: así, al
+  // entrar a una de sus postulaciones y volver, se regresa exactamente a
+  // este mismo autor (y no a la lista completa).
+  const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  const search = params.get('authorSearch') || '';
+  const setSearch = (v: string) => {
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (v) next.set('authorSearch', v); else next.delete('authorSearch');
+      return next;
+    }, { replace: true });
+  };
+
+  const authorKey = params.get('authorKey') || '';
+  const selectAuthor = (a: UniqueAuthor) => {
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('authorKey', a.key);
+      return next;
+    }); // push: permite volver con el botón "Atrás" del navegador
+  };
 
   const { data: authors, isLoading } = useQuery({
     queryKey: ['submissions-authors', eventId],
     queryFn: () => submissionsApi.getUniqueAuthors(eventId!),
     enabled: !!eventId,
   });
+
+  const selected = authors?.find((a) => a.key === authorKey) ?? null;
 
   const q = search.trim().toLowerCase();
   const filtered = (authors ?? []).filter((a) =>
@@ -259,7 +282,7 @@ function UniqueAuthorsTab({ eventId }: { eventId?: string }) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <button
-          onClick={() => setSelected(null)}
+          onClick={() => navigate(-1)}
           className="flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:underline mb-4 cursor-pointer"
         >
           <ArrowLeft size={15} /> Volver a autores únicos
@@ -344,7 +367,7 @@ function UniqueAuthorsTab({ eventId }: { eventId?: string }) {
                   filtered.map((a) => (
                     <tr
                       key={a.key}
-                      onClick={() => setSelected(a)}
+                      onClick={() => selectAuthor(a)}
                       className="hover:bg-gray-50 transition-colors cursor-pointer"
                     >
                       <td className="table-td">
@@ -372,28 +395,64 @@ function UniqueAuthorsTab({ eventId }: { eventId?: string }) {
 
 // ─── Página principal ─────────────────────────────────────────────────────────
 export default function Submissions() {
-  const [params] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'list' | 'authors'>('list');
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState(params.get('status') || '');
-  const [axisId, setAxisId] = useState('');
-  const [productTypeId, setProductTypeId] = useState(params.get('productTypeId') || '');
-  const [countryId, setCountryId] = useState('');
-  const [universityId, setUniversityId] = useState('');
-  const [facultyId, setFacultyId] = useState('');
+  const [params, setParams] = useSearchParams();
+
+  // Todos los filtros/estado de esta vista viven en la URL, para que al
+  // entrar a una postulación (o a un autor y luego a su postulación) y
+  // volver, se conserven exactamente como estaban.
+  const updateParams = (
+    updates: Record<string, string | number | undefined>,
+    options?: { push?: boolean },
+  ) => {
+    // Forma funcional: evita perder cambios si dos actualizaciones ocurren
+    // en el mismo tick (cada una partiría de los searchParams ya vigentes).
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      for (const [k, v] of Object.entries(updates)) {
+        if (v === undefined || v === '') next.delete(k);
+        else next.set(k, String(v));
+      }
+      if (!('page' in updates)) next.delete('page'); // cualquier cambio de filtro regresa a la página 1
+      return next;
+    }, { replace: !options?.push });
+  };
+
+  const activeTab = (params.get('tab') as 'list' | 'authors') || 'list';
+  const setActiveTab = (t: 'list' | 'authors') => updateParams({ tab: t === 'list' ? undefined : t });
+  const search = params.get('search') || '';
+  const setSearch = (v: string) => updateParams({ search: v });
+  const status = params.get('status') || '';
+  const setStatus = (v: string) => updateParams({ status: v });
+  const axisId = params.get('axisId') || '';
+  const setAxisId = (v: string) => updateParams({ axisId: v });
+  const productTypeId = params.get('productTypeId') || '';
+  const setProductTypeId = (v: string) => updateParams({ productTypeId: v });
+  const countryId = params.get('countryId') || '';
+  const setCountryId = (v: string) => updateParams({ countryId: v, universityId: undefined, facultyId: undefined });
+  const universityId = params.get('universityId') || '';
+  const setUniversityId = (v: string) => updateParams({ universityId: v, facultyId: undefined });
+  const facultyId = params.get('facultyId') || '';
+  const setFacultyId = (v: string) => updateParams({ facultyId: v });
   const [showBulkModal, setShowBulkModal] = useState(false);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-  const [sortBy, setSortBy] = useState<'name' | 'title' | 'date'>('date');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const page = Number(params.get('page')) || 1;
+  const setPage = (p: number) => updateParams({ page: p });
+  const pageSize = Number(params.get('pageSize')) || 20;
+  const setPageSize = (n: number) => updateParams({ pageSize: n });
+  const sortBy = (params.get('sortBy') as 'name' | 'title' | 'date') || 'date';
+  const sortDir = (params.get('sortDir') as 'asc' | 'desc') || 'desc';
 
   const { data: activeEvent } = useQuery({ queryKey: ['event-active'], queryFn: eventsApi.getActive });
-  const [eventId, setEventId] = useState<string | undefined>(undefined);
+  const [eventId, setEventIdState] = useState<string | undefined>(params.get('eventId') || undefined);
+  const setEventId = (id: string) => { setEventIdState(id); updateParams({ eventId: id }); };
 
   // Por defecto se muestra el evento activo, pero el admin puede cambiarlo
   // para consultar postulaciones de ediciones anteriores.
   useEffect(() => {
-    if (!eventId && activeEvent?.id) setEventId(activeEvent.id);
+    if (!eventId && activeEvent?.id) {
+      setEventIdState(activeEvent.id);
+      updateParams({ eventId: activeEvent.id });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeEvent, eventId]);
 
   const { data: axes } = useQuery({
@@ -494,9 +553,8 @@ export default function Submissions() {
   };
 
   const handleSort = (col: 'name' | 'title' | 'date') => {
-    if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    else { setSortBy(col); setSortDir('asc'); }
-    setPage(1);
+    if (sortBy === col) updateParams({ sortDir: sortDir === 'asc' ? 'desc' : 'asc' });
+    else updateParams({ sortBy: col, sortDir: 'asc' });
   };
 
   const sortedSubmissions = [...(submissions ?? [])].sort((a, b) => {
@@ -516,7 +574,8 @@ export default function Submissions() {
   const totalPages = Math.max(1, Math.ceil(sortedSubmissions.length / pageSize));
   const submissionsPage = sortedSubmissions.slice((page - 1) * pageSize, page * pageSize);
 
-  const handleFilterChange = (fn: () => void) => { fn(); setPage(1); };
+  // Cada setter de filtro ya regresa a la página 1 por sí mismo (ver updateParams).
+  const handleFilterChange = (fn: () => void) => fn();
 
   const SortIcon = ({ col }: { col: 'name' | 'title' | 'date' }) => {
     if (sortBy !== col) return <ChevronsUpDown size={13} className="text-gray-400 ml-1 inline" />;
@@ -540,7 +599,7 @@ export default function Submissions() {
         <h1 className="font-heading font-bold text-2xl text-gray-900">Postulaciones</h1>
         <div className="flex items-center gap-3">
           {/* Selector de evento */}
-          <EventPicker value={eventId} onChange={(id) => { setEventId(id); setPage(1); }} />
+          <EventPicker value={eventId} onChange={(id) => setEventId(id)} />
           {/* Botón exportar CSV */}
           <button
             onClick={handleExportCsv}
@@ -644,11 +703,7 @@ export default function Submissions() {
           <div className="relative">
             <select
               value={countryId}
-              onChange={(e) => handleFilterChange(() => {
-                setCountryId(e.target.value);
-                setUniversityId('');
-                setFacultyId('');
-              })}
+              onChange={(e) => handleFilterChange(() => setCountryId(e.target.value))}
               className="form-input py-2.5 text-sm appearance-none"
             >
               <option value="">Todos los países</option>
@@ -661,10 +716,7 @@ export default function Submissions() {
           <div className="relative">
             <select
               value={universityId}
-              onChange={(e) => handleFilterChange(() => {
-                setUniversityId(e.target.value);
-                setFacultyId('');
-              })}
+              onChange={(e) => handleFilterChange(() => setUniversityId(e.target.value))}
               className="form-input py-2.5 text-sm appearance-none"
             >
               <option value="">Todas las universidades</option>
@@ -801,7 +853,7 @@ export default function Submissions() {
                 </p>
                 <select
                   value={pageSize}
-                  onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
                   className="text-xs border border-gray-200 rounded-lg px-2 py-1 text-gray-600 focus:outline-none focus:ring-1 focus:ring-primary-500"
                 >
                   {[20, 30, 40, 50].map((n) => (
