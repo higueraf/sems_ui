@@ -7,6 +7,30 @@ interface SubmissionFilters {
   thematicAxisId?: string;
   productTypeId?: string;
   search?: string;
+  countryId?: string;
+  universityId?: string;
+  facultyId?: string;
+}
+
+export interface UniqueAuthorSubmission {
+  id: string;
+  referenceCode: string;
+  titleEs: string;
+  status: SubmissionStatus;
+  createdAt: string;
+}
+
+export interface UniqueAuthor {
+  key: string;
+  fullName: string;
+  email: string;
+  personId: string | null;
+  universityId: string | null;
+  universityName: string | null;
+  countryId: string | null;
+  countryName: string | null;
+  submissionCount: number;
+  submissions: UniqueAuthorSubmission[];
 }
 
 export const submissionsApi = {
@@ -28,6 +52,9 @@ export const submissionsApi = {
 
   getStats: (eventId: string) =>
     api.get<SubmissionStats>('/submissions/admin/stats', { params: { eventId } }).then((r) => r.data),
+
+  getUniqueAuthors: (eventId: string) =>
+    api.get<UniqueAuthor[]>('/submissions/admin/authors', { params: { eventId } }).then((r) => r.data),
 
   getOne: (id: string) =>
     api.get<Submission>(`/submissions/admin/${id}`).then((r) => r.data),

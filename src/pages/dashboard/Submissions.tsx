@@ -3,13 +3,13 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   Search, Filter, Eye, ChevronDown, ChevronUp, ChevronsUpDown,
-  Mail, X, Send, AlertTriangle, CheckCircle, Loader2, Download,
+  Mail, X, Send, AlertTriangle, CheckCircle, Loader2, Download, Users, ArrowLeft, FileText,
 } from 'lucide-react';
 import RichTextEditor from '../../components/ui/RichTextEditor';
 import EventPicker from '../../components/dashboard/EventPicker';
 import { eventsApi } from '../../api/events.api';
-import { submissionsApi } from '../../api/submissions.api';
-import { thematicAxesApi, productTypesApi } from '../../api/index';
+import { submissionsApi, UniqueAuthor } from '../../api/submissions.api';
+import { thematicAxesApi, productTypesApi, countriesApi, universitiesApi, facultiesApi } from '../../api/index';
 import { Submission } from '../../types';
 import { STATUS_CONFIG, formatDate } from '../../utils';
 
@@ -238,13 +238,149 @@ function BulkEmailModal({
 }
 
 
+// ─── Pestaña de autores únicos ────────────────────────────────────────────────
+function UniqueAuthorsTab({ eventId }: { eventId?: string }) {
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState<UniqueAuthor | null>(null);
+
+  const { data: authors, isLoading } = useQuery({
+    queryKey: ['submissions-authors', eventId],
+    queryFn: () => submissionsApi.getUniqueAuthors(eventId!),
+    enabled: !!eventId,
+  });
+
+  const q = search.trim().toLowerCase();
+  const filtered = (authors ?? []).filter((a) =>
+    !q || a.fullName.toLowerCase().includes(q) || a.email.toLowerCase().includes(q),
+  );
+
+  // Vista de detalle: postulaciones de un autor seleccionado
+  if (selected) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <button
+          onClick={() => setSelected(null)}
+          className="flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:underline mb-4 cursor-pointer"
+        >
+          <ArrowLeft size={15} /> Volver a autores únicos
+        </button>
+
+        <div className="flex items-start justify-between flex-wrap gap-3 mb-5">
+          <div>
+            <h2 className="font-heading font-bold text-lg text-gray-900">{selected.fullName}</h2>
+            <p className="text-sm text-gray-500">{selected.email}</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {selected.universityName ?? 'Sin institución'} {selected.countryName ? `· ${selected.countryName}` : ''}
+            </p>
+          </div>
+          <span className="badge bg-blue-100 text-blue-700 text-sm">
+            {selected.submissionCount} postulaci{selected.submissionCount === 1 ? 'ón' : 'ones'}
+          </span>
+        </div>
+
+        <div className="divide-y divide-gray-100 border border-gray-100 rounded-lg overflow-hidden">
+          {selected.submissions.map((sub) => {
+            const cfg = STATUS_CONFIG[sub.status];
+            return (
+              <Link
+                key={sub.id}
+                to={`/dashboard/postulaciones/${sub.id}`}
+                className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+              >
+                <div className="min-w-0">
+                  <p className="font-mono text-xs text-primary-600 font-semibold">{sub.referenceCode}</p>
+                  <p className="text-sm font-medium text-gray-800 line-clamp-1">{sub.titleEs}</p>
+                  <p className="text-xs text-gray-400">{formatDate(sub.createdAt)}</p>
+                </div>
+                <span className={`badge shrink-0 ${cfg?.bgColor} ${cfg?.textColor}`}>
+                  {cfg?.label ?? sub.status}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Vista de lista: autores únicos del evento
+  return (
+    <div className="space-y-4">
+      <div className="card !p-4">
+        <div className="relative max-w-sm">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Buscar autor por nombre o correo..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="form-input pl-9 py-2.5 text-sm"
+          />
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        {isLoading ? (
+          <div className="p-8 text-center text-gray-400">Cargando...</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr>
+                  <th className="table-th">Autor</th>
+                  <th className="table-th">Institución</th>
+                  <th className="table-th">País</th>
+                  <th className="table-th">Postulaciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="table-td text-center text-gray-400 py-10">
+                      No se encontraron autores
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map((a) => (
+                    <tr
+                      key={a.key}
+                      onClick={() => setSelected(a)}
+                      className="hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      <td className="table-td">
+                        <p className="font-medium text-gray-900 text-sm">{a.fullName}</p>
+                        <p className="text-xs text-gray-400">{a.email}</p>
+                      </td>
+                      <td className="table-td text-sm text-gray-600">{a.universityName ?? '—'}</td>
+                      <td className="table-td text-sm text-gray-600">{a.countryName ?? '—'}</td>
+                      <td className="table-td">
+                        <span className="badge bg-blue-100 text-blue-700 text-xs flex items-center gap-1 w-fit">
+                          <FileText size={11} /> {a.submissionCount}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Página principal ─────────────────────────────────────────────────────────
 export default function Submissions() {
   const [params] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<'list' | 'authors'>('list');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState(params.get('status') || '');
   const [axisId, setAxisId] = useState('');
   const [productTypeId, setProductTypeId] = useState(params.get('productTypeId') || '');
+  const [countryId, setCountryId] = useState('');
+  const [universityId, setUniversityId] = useState('');
+  const [facultyId, setFacultyId] = useState('');
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -269,8 +405,21 @@ export default function Submissions() {
     queryKey: ['product-types'],
     queryFn: () => productTypesApi.getAll(true),
   });
+  const { data: countries } = useQuery({
+    queryKey: ['countries'],
+    queryFn: () => countriesApi.getAll(),
+  });
+  const { data: universities } = useQuery({
+    queryKey: ['universities', countryId],
+    queryFn: () => universitiesApi.getAll({ countryId: countryId || undefined }),
+  });
+  const { data: faculties } = useQuery({
+    queryKey: ['faculties', universityId],
+    queryFn: () => facultiesApi.getAll({ universityId }),
+    enabled: !!universityId,
+  });
   const { data: submissions, isLoading } = useQuery({
-    queryKey: ['submissions', eventId, status, axisId, productTypeId, search],
+    queryKey: ['submissions', eventId, status, axisId, productTypeId, search, countryId, universityId, facultyId],
     queryFn: () =>
       submissionsApi.getAll({
         eventId,
@@ -278,6 +427,9 @@ export default function Submissions() {
         thematicAxisId: axisId || undefined,
         productTypeId: productTypeId || undefined,
         search: search || undefined,
+        countryId: countryId || undefined,
+        universityId: universityId || undefined,
+        facultyId: facultyId || undefined,
       }),
     enabled: !!eventId,
   });
@@ -414,6 +566,29 @@ export default function Submissions() {
         </div>
       </div>
 
+      {/* Pestañas */}
+      <div className="flex items-center gap-1 border-b border-gray-200">
+        {[
+          { key: 'list' as const, label: 'Postulaciones', icon: FileText },
+          { key: 'authors' as const, label: 'Autores Únicos', icon: Users },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
+              activeTab === tab.key ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <tab.icon size={15} />
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'authors' ? (
+        <UniqueAuthorsTab eventId={eventId} />
+      ) : (
+      <>
       {/* Filters */}
       <div className="card !p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -462,6 +637,53 @@ export default function Submissions() {
               <option value="">Todos los ejes</option>
               {axes?.map((a) => (
                 <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          </div>
+          <div className="relative">
+            <select
+              value={countryId}
+              onChange={(e) => handleFilterChange(() => {
+                setCountryId(e.target.value);
+                setUniversityId('');
+                setFacultyId('');
+              })}
+              className="form-input py-2.5 text-sm appearance-none"
+            >
+              <option value="">Todos los países</option>
+              {countries?.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          </div>
+          <div className="relative">
+            <select
+              value={universityId}
+              onChange={(e) => handleFilterChange(() => {
+                setUniversityId(e.target.value);
+                setFacultyId('');
+              })}
+              className="form-input py-2.5 text-sm appearance-none"
+            >
+              <option value="">Todas las universidades</option>
+              {universities?.map((u) => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+            </select>
+            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          </div>
+          <div className="relative">
+            <select
+              value={facultyId}
+              onChange={(e) => handleFilterChange(() => setFacultyId(e.target.value))}
+              disabled={!universityId}
+              className="form-input py-2.5 text-sm appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="">Todas las facultades</option>
+              {faculties?.map((f) => (
+                <option key={f.id} value={f.id}>{f.name}</option>
               ))}
             </select>
             <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -620,6 +842,8 @@ export default function Submissions() {
           </>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 }
