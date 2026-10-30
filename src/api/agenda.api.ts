@@ -32,6 +32,9 @@ export const agendaApi = {
   publishAll: (eventId: string) =>
     api.patch('/agenda/publish-all', {}, { params: { eventId } }).then((r) => r.data),
 
+  unpublishAll: (eventId: string) =>
+    api.patch('/agenda/unpublish-all', {}, { params: { eventId } }).then((r) => r.data),
+
   getEligibleSubmissions: (eventId: string) =>
     api.get('/agenda/eligible-submissions', { params: { eventId } }).then((r) => r.data),
 

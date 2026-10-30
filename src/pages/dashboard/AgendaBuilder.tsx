@@ -725,6 +725,15 @@ export default function AgendaBuilder() {
       qc.invalidateQueries({ queryKey: ['event-active'] });
     },
   });
+  const unpublishAllMutation = useMutation({
+    mutationFn: () => agendaApi.unpublishAll(event!.id),
+    onSuccess: async () => {
+      await eventsApi.unpublishAgenda(event!.id);
+      toast.success('Agenda ocultada del sitio público');
+      qc.invalidateQueries({ queryKey: ['agenda-all'] });
+      qc.invalidateQueries({ queryKey: ['event-active'] });
+    },
+  });
   const reorderMutation = useMutation({
     mutationFn: (orderedIds: string[]) => agendaApi.reorder(orderedIds),
   });
@@ -892,13 +901,27 @@ export default function AgendaBuilder() {
           >
             <Plus size={15} /> Agregar Bloque
           </button>
-          <button
-            onClick={() => publishAllMutation.mutate()}
-            disabled={publishAllMutation.isPending}
-            className="btn-outline btn-sm flex items-center gap-1.5"
-          >
-            <Send size={14} /> Publicar Todo
-          </button>
+          {event?.isAgendaPublished ? (
+            <button
+              onClick={() => {
+                if (window.confirm('¿Ocultar toda la agenda del sitio público?')) {
+                  unpublishAllMutation.mutate();
+                }
+              }}
+              disabled={unpublishAllMutation.isPending}
+              className="btn-outline btn-sm flex items-center gap-1.5"
+            >
+              <EyeOff size={14} /> Ocultar Todo
+            </button>
+          ) : (
+            <button
+              onClick={() => publishAllMutation.mutate()}
+              disabled={publishAllMutation.isPending}
+              className="btn-outline btn-sm flex items-center gap-1.5"
+            >
+              <Send size={14} /> Publicar Todo
+            </button>
+          )}
         </div>
       </div>
 
