@@ -99,10 +99,13 @@ function SubmissionSearchPanel({
           const isScheduled = s.status === 'scheduled';
 
           return (
-            <button
+            <div
               key={s.id}
-              onClick={() => onViewDetails(s)}
-              className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all ${
+              role="button"
+              tabIndex={0}
+              onClick={() => onSelect(s.id, s)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelect(s.id, s); }}
+              className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all cursor-pointer ${
                 isSelected
                   ? 'border-primary-400 bg-primary-50 shadow-sm'
                   : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
@@ -139,6 +142,14 @@ function SubmissionSearchPanel({
                     ) : (
                       <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-medium">Aprobada</span>
                     )}
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onViewDetails(s); }}
+                      title="Ver detalles de la postulación"
+                      className="ml-auto p-0.5 text-gray-400 hover:text-primary-600 rounded"
+                    >
+                      <Eye size={13} />
+                    </button>
                   </div>
                   <p className="text-xs font-semibold text-gray-800 line-clamp-2 leading-snug mb-1">
                     {s.titleEs}
@@ -159,7 +170,7 @@ function SubmissionSearchPanel({
                   )}
                 </div>
               </div>
-            </button>
+            </div>
           );
         })}
 
@@ -180,8 +191,8 @@ function SubmissionDetailModal({
   submission: Submission; onClose: () => void; onSelect?: () => void;
 }) {
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         <div className="p-5 border-b border-gray-100 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <span className="font-mono text-xs text-primary-600 font-semibold">{submission.referenceCode}</span>
@@ -1235,7 +1246,7 @@ export default function AgendaBuilder() {
       {/* ── Modal formulario ── */}
       {showForm && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-4 flex flex-col max-h-[92vh]">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-4 flex flex-col max-h-[92vh]">
             {/* Modal header */}
             <div className="p-5 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
               <h3 className="font-heading font-bold text-lg text-gray-900">
