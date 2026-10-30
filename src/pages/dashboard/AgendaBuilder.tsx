@@ -42,9 +42,10 @@ const SLOT_TYPE_BADGE: Record<string, string> = {
 const PANEL_DEFAULT_LIMIT = 30;
 
 function SubmissionSearchPanel({
-  submissions, selectedId, onSelect,
+  submissions, selectedId, onSelect, onViewDetails,
 }: {
   submissions: Submission[]; selectedId: string; onSelect: (id: string, sub?: Submission) => void;
+  onViewDetails: (sub: Submission) => void;
 }) {
   const [search, setSearch] = useState('');
 
@@ -100,7 +101,7 @@ function SubmissionSearchPanel({
           return (
             <button
               key={s.id}
-              onClick={() => onSelect(s.id, s)}
+              onClick={() => onViewDetails(s)}
               className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all ${
                 isSelected
                   ? 'border-primary-400 bg-primary-50 shadow-sm'
@@ -167,6 +168,89 @@ function SubmissionSearchPanel({
             No se encontraron ponencias
           </p>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ── SubmissionDetailModal ────────────────────────────────────────────────────
+function SubmissionDetailModal({
+  submission, onClose, onSelect,
+}: {
+  submission: Submission; onClose: () => void; onSelect?: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col">
+        <div className="p-5 border-b border-gray-100 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <span className="font-mono text-xs text-primary-600 font-semibold">{submission.referenceCode}</span>
+            <h3 className="font-heading font-bold text-lg text-gray-900 mt-0.5">{submission.titleEs}</h3>
+            {submission.titleEn && <p className="text-gray-500 text-sm italic mt-1">{submission.titleEn}</p>}
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 flex-shrink-0">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="p-5 overflow-y-auto space-y-4">
+          {submission.thematicAxis && (
+            <span
+              className="inline-block text-xs px-2.5 py-1 rounded-full text-white font-medium"
+              style={{ backgroundColor: submission.thematicAxis.color || '#007F3A' }}
+            >
+              {submission.thematicAxis.name}
+            </span>
+          )}
+
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              Autores ({submission.authors?.length ?? 0})
+            </p>
+            <div className="space-y-2">
+              {submission.authors?.map((author) => (
+                <div key={author.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                  {author.photoUrl ? (
+                    <img
+                      src={author.photoUrl}
+                      alt={author.fullName}
+                      className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-primary-100 text-primary-500 flex items-center justify-center font-bold text-sm border-2 border-white shadow-sm flex-shrink-0">
+                      <User size={16} />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-semibold text-sm text-gray-900">{author.fullName}</span>
+                      {author.country?.flagEmoji && <span className="text-sm">{author.country.flagEmoji}</span>}
+                      {author.isCorresponding && (
+                        <span className="text-[10px] bg-primary-100 text-primary-700 px-1.5 py-0.5 rounded font-medium">Correspondencia</span>
+                      )}
+                      {author.isPresenter && (
+                        <span className="text-[10px] bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded font-medium">Ponente</span>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-0.5 space-y-0.5">
+                      {author.academicTitle && <p>{author.academicTitle}</p>}
+                      {(author.university?.name || author.affiliation) && <p>{author.university?.name || author.affiliation}</p>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="p-5 border-t border-gray-100 flex justify-end gap-2">
+          <button onClick={onClose} className="btn-outline btn-sm">Cerrar</button>
+          {onSelect && (
+            <button onClick={onSelect} className="btn-primary btn-sm text-white flex items-center gap-1.5">
+              <Check size={14} /> Seleccionar esta ponencia
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -279,11 +363,11 @@ function DeleteSlotModal({
 
 // ── SlotCard (shared visual, no DnD) ─────────────────────────────────────────
 function SlotCard({
-  slot, onEdit, onDelete, onTogglePublish, onNotify, notifying, showDate = false, dragHandle = null,
+  slot, onEdit, onDelete, onTogglePublish, onNotify, onViewDetails, notifying, showDate = false, dragHandle = null,
 }: {
   slot: AgendaSlot; onEdit: (s: AgendaSlot) => void;
   onDelete: (id: string) => void; onTogglePublish: (s: AgendaSlot) => void;
-  onNotify?: (id: string) => void; notifying?: boolean;
+  onNotify?: (id: string) => void; onViewDetails?: (sub: Submission) => void; notifying?: boolean;
   showDate?: boolean; dragHandle?: ReactNode;
 }) {
   const mainAuthor =
@@ -336,7 +420,10 @@ function SlotCard({
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0">
+      <div
+        className={`flex-1 min-w-0 ${slot.submission ? 'cursor-pointer' : ''}`}
+        onClick={() => slot.submission && onViewDetails?.(slot.submission)}
+      >
         <div className="flex items-center gap-1.5 flex-wrap mb-1">
           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${SLOT_TYPE_BADGE[slot.type] || 'bg-gray-100 text-gray-600'}`}>
             {SLOT_TYPE_LABELS[slot.type] || slot.type}
@@ -410,11 +497,11 @@ function SlotCard({
 
 // ── SortableSlot (DnD wrapper) ────────────────────────────────────────────────
 function SortableSlot({
-  slot, onEdit, onDelete, onTogglePublish, onNotify, notifying,
+  slot, onEdit, onDelete, onTogglePublish, onNotify, onViewDetails, notifying,
 }: {
   slot: AgendaSlot; onEdit: (s: AgendaSlot) => void;
   onDelete: (id: string) => void; onTogglePublish: (s: AgendaSlot) => void;
-  onNotify?: (id: string) => void; notifying?: boolean;
+  onNotify?: (id: string) => void; onViewDetails?: (sub: Submission) => void; notifying?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: slot.id });
@@ -423,7 +510,7 @@ function SortableSlot({
     <div ref={setNodeRef} style={style}>
       <SlotCard
         slot={slot} onEdit={onEdit} onDelete={onDelete} onTogglePublish={onTogglePublish}
-        onNotify={onNotify} notifying={notifying}
+        onNotify={onNotify} onViewDetails={onViewDetails} notifying={notifying}
         dragHandle={
           <div {...attributes} {...listeners} className="cursor-grab text-gray-300 hover:text-gray-500 flex-shrink-0">
             <GripVertical size={16} />
@@ -593,6 +680,8 @@ export default function AgendaBuilder() {
   const [form, setForm] = useState<SlotForm>(EMPTY_FORM);
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<AgendaSlot | null>(null);
+  const [detailSubmission, setDetailSubmission] = useState<Submission | null>(null);
+  const [detailSelectable, setDetailSelectable] = useState(false);
   const [showNotifyModal, setShowNotifyModal] = useState(false);
   const [notifyingSlotId, setNotifyingSlotId] = useState<string | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
@@ -881,6 +970,23 @@ export default function AgendaBuilder() {
         />
       )}
 
+      {/* ── Modal detalles de postulación ── */}
+      {detailSubmission && (
+        <SubmissionDetailModal
+          submission={detailSubmission}
+          onClose={() => { setDetailSubmission(null); setDetailSelectable(false); }}
+          onSelect={
+            detailSelectable
+              ? () => {
+                  handleSelectSubmission(detailSubmission.id, detailSubmission);
+                  setDetailSubmission(null);
+                  setDetailSelectable(false);
+                }
+              : undefined
+          }
+        />
+      )}
+
       {/* ── Modal notificar ponentes ── */}
       {showNotifyModal && (
         <NotifyModal
@@ -1098,6 +1204,7 @@ export default function AgendaBuilder() {
                       onDelete={(id) => { const s = slots.find((x) => x.id === id); if (s) setDeleteTarget(s); }}
                       onTogglePublish={(s) => publishMutation.mutate({ id: s.id, publish: !s.isPublished })}
                       onNotify={(id) => notifySlotMutation.mutate(id)}
+                      onViewDetails={(sub) => setDetailSubmission(sub)}
                       notifying={notifyingSlotId === slot.id}
                     />
                   ))}
@@ -1113,6 +1220,7 @@ export default function AgendaBuilder() {
                   onDelete={(id) => { const s = slots.find((x) => x.id === id); if (s) setDeleteTarget(s); }}
                   onTogglePublish={(s) => publishMutation.mutate({ id: s.id, publish: !s.isPublished })}
                   onNotify={(id) => notifySlotMutation.mutate(id)}
+                  onViewDetails={(sub) => setDetailSubmission(sub)}
                   notifying={notifyingSlotId === slot.id}
                 />
               ))}
@@ -1251,6 +1359,7 @@ export default function AgendaBuilder() {
                       submissions={submissionsForPanel}
                       selectedId={form.submissionId}
                       onSelect={handleSelectSubmission}
+                      onViewDetails={(sub) => { setDetailSubmission(sub); setDetailSelectable(true); }}
                     />
                   </div>
                 </div>
