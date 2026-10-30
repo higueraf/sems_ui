@@ -587,6 +587,7 @@ export default function AgendaBuilder() {
   const qc = useQueryClient();
   const [selectedDay, setSelectedDay] = useState<string>('');
   const [selectedRoom, setSelectedRoom] = useState<string>('');
+  const [blockSearch, setBlockSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingSlot, setEditingSlot] = useState<AgendaSlot | null>(null);
   const [form, setForm] = useState<SlotForm>(EMPTY_FORM);
@@ -662,6 +663,16 @@ export default function AgendaBuilder() {
     let result = [...slots];
     if (selectedDay) result = result.filter((s) => s.day.split('T')[0] === selectedDay);
     if (selectedRoom) result = result.filter((s) => s.room === selectedRoom);
+    const q = blockSearch.trim().toLowerCase();
+    if (q) {
+      result = result.filter((s) =>
+        s.title?.toLowerCase().includes(q) ||
+        s.speakerName?.toLowerCase().includes(q) ||
+        s.submission?.titleEs?.toLowerCase().includes(q) ||
+        s.submission?.referenceCode?.toLowerCase().includes(q) ||
+        s.submission?.authors?.some((a) => a.fullName?.toLowerCase().includes(q)),
+      );
+    }
     return result.sort((a, b) => {
       const d = a.day.localeCompare(b.day);
       if (d !== 0) return d;
@@ -669,7 +680,7 @@ export default function AgendaBuilder() {
       if (t !== 0) return t;
       return a.displayOrder - b.displayOrder;
     });
-  }, [slots, selectedDay, selectedRoom]);
+  }, [slots, selectedDay, selectedRoom, blockSearch]);
 
   const totalPages = Math.max(1, Math.ceil(slotsFiltered.length / PAGE_SIZE));
 
@@ -842,11 +853,19 @@ export default function AgendaBuilder() {
   // When editing a slot, its submission is already "scheduled" so it won't appear
   // in eligibleSubmissions. We inject it back so the panel can show it.
   const submissionsForPanel = useMemo(() => {
-    if (!editingSlot?.submissionId || !editingSlot.submission) return eligibleSubmissions;
-    const alreadyIn = eligibleSubmissions.some((s) => s.id === editingSlot.submissionId);
-    if (alreadyIn) return eligibleSubmissions;
-    return [editingSlot.submission as Submission, ...eligibleSubmissions];
-  }, [eligibleSubmissions, editingSlot]);
+    // Excluir postulaciones ya vinculadas a otro bloque real de la agenda, aunque su
+    // productStatuses no se haya actualizado a 'scheduled' (puede pasar si la postulación
+    // se aprobó después de agendarla). Los bloques son la fuente de verdad.
+    const linkedElsewhere = new Set(
+      slots.filter((s) => s.submissionId && s.id !== editingSlot?.id).map((s) => s.submissionId as string),
+    );
+    const base = eligibleSubmissions.filter((s) => !linkedElsewhere.has(s.id));
+
+    if (!editingSlot?.submissionId || !editingSlot.submission) return base;
+    const alreadyIn = base.some((s) => s.id === editingSlot.submissionId);
+    if (alreadyIn) return base;
+    return [editingSlot.submission as Submission, ...base];
+  }, [eligibleSubmissions, editingSlot, slots]);
 
   return (
     <div className="space-y-5">
@@ -877,7 +896,7 @@ export default function AgendaBuilder() {
         <div>
           <h1 className="font-heading font-bold text-2xl text-gray-900">Agenda del Evento</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {slots.length} bloques · {eligibleSubmissions.length} ponencias disponibles
+            {slots.length} bloques · {submissionsForPanel.length} ponencias disponibles
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -911,7 +930,7 @@ export default function AgendaBuilder() {
               disabled={unpublishAllMutation.isPending}
               className="btn-outline btn-sm flex items-center gap-1.5"
             >
-              <EyeOff size={14} /> Ocultar Todo
+              <EyeOff size={14} /> Ocultar
             </button>
           ) : (
             <button
@@ -919,7 +938,7 @@ export default function AgendaBuilder() {
               disabled={publishAllMutation.isPending}
               className="btn-outline btn-sm flex items-center gap-1.5"
             >
-              <Send size={14} /> Publicar Todo
+              <Send size={14} /> Publicar
             </button>
           )}
         </div>
@@ -1025,6 +1044,17 @@ export default function AgendaBuilder() {
                 {slotsFiltered.length} {slotsFiltered.length === 1 ? 'bloque' : 'bloques'}
               </span>
             </div>
+          </div>
+
+          {/* Buscar entre los bloques ya agendados */}
+          <div className="relative">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              className="form-input pl-8 text-sm"
+              placeholder="Buscar bloque por título, código o ponente…"
+              value={blockSearch}
+              onChange={(e) => { setBlockSearch(e.target.value); setPage(1); }}
+            />
           </div>
 
           {/* Room filter pills */}
@@ -1213,7 +1243,7 @@ export default function AgendaBuilder() {
                   <div className="flex items-center gap-2 mb-2">
                     <label className="form-label mb-0">Ponencia</label>
                     <span className="text-xs text-gray-400">
-                      — {eligibleSubmissions.length} aprobadas disponibles
+                      — {submissionsForPanel.length} aprobadas disponibles
                     </span>
                   </div>
                   <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
@@ -1261,10 +1291,12 @@ export default function AgendaBuilder() {
                   <div>
                     <label className="form-label">Institución</label>
                     <input
-                      className="form-input"
+                      className="form-input disabled:bg-gray-100 disabled:text-gray-500"
                       placeholder="Universidad / Institución"
                       value={form.speakerAffiliation}
                       onChange={(e) => setForm({ ...form, speakerAffiliation: e.target.value })}
+                      disabled={!!form.submissionId}
+                      title={form.submissionId ? 'Se toma de la institución del autor de la ponencia seleccionada' : undefined}
                     />
                   </div>
                 </div>
