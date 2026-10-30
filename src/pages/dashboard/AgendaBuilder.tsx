@@ -630,7 +630,13 @@ export default function AgendaBuilder() {
       // Si ya tenemos los tipos cargados, filtrar por tipo de producción.
       // Si aún no hay tipos (carga inicial), mostrar todo para no bloquear.
       if (ponenciaTypeIds.size === 0) return data;
-      return data.filter((s) => (s.productTypeIds || []).some((id) => ponenciaTypeIds.has(id)));
+      // Exige que al menos un tipo "ponencia" siga en 'approved' (no agendado aún);
+      // productTypeIds no sirve para esto porque no cambia cuando un tipo se agenda.
+      return data.filter((s) =>
+        Object.entries(s.productStatuses || {}).some(
+          ([ptId, st]) => ponenciaTypeIds.has(ptId) && st === 'approved',
+        ),
+      );
     },
   });
 
