@@ -463,7 +463,7 @@ function SlotCard({
           {slot.submission?.titleEs || slot.title || <span className="text-gray-400 italic">Sin título</span>}
         </p>
         {speakerName && (
-          <div className="flex items-center gap-1.5 mt-1">
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
             <span className="text-xs text-gray-600 truncate">{speakerName}</span>
             {flagEmoji && <span className="text-sm leading-none">{flagEmoji}</span>}
             {mainAuthor?.university?.logoUrl && (
@@ -471,10 +471,10 @@ function SlotCard({
                 src={getFileUrl(mainAuthor.university.logoUrl)}
                 alt={mainAuthor.university.name}
                 title={mainAuthor.university.name}
-                className="w-4 h-4 object-contain rounded bg-white border border-gray-200 flex-shrink-0"
+                className="w-7 h-7 object-contain rounded bg-white border border-gray-200 flex-shrink-0"
               />
             )}
-            {affiliation && <span className="text-xs text-gray-400 truncate hidden sm:block">· {affiliation}</span>}
+            {affiliation && <span className="text-xs text-gray-400 truncate">{affiliation}</span>}
           </div>
         )}
       </div>

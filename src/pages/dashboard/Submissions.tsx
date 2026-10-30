@@ -814,7 +814,7 @@ export default function Submissions() {
                                   src={getFileUrl(corresponding.university.logoUrl)}
                                   alt={corresponding.university.name}
                                   title={corresponding.university.name}
-                                  className="w-4 h-4 object-contain rounded bg-white border border-gray-200"
+                                  className="w-7 h-7 object-contain rounded bg-white border border-gray-200"
                                 />
                               )}
                             </div>

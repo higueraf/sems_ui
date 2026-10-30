@@ -123,7 +123,7 @@ function SlotCard({ slot, isDark }: { slot: AgendaSlot; isDark: boolean }) {
                         src={getFileUrl(mainAuthor.university.logoUrl)}
                         alt={mainAuthor.university.name}
                         title={mainAuthor.university.name}
-                        className="w-3.5 h-3.5 object-contain rounded bg-white border border-gray-200 flex-shrink-0"
+                        className="w-7 h-7 object-contain rounded bg-white border border-gray-200 flex-shrink-0"
                       />
                     )}
                     {affiliation}
