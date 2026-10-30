@@ -18,7 +18,7 @@ import { eventsApi } from '../../api/events.api';
 import { agendaApi } from '../../api/agenda.api';
 import { productTypesApi } from '../../api/index';
 import { AgendaSlot, Submission } from '../../types';
-import { SLOT_TYPE_LABELS, formatTime } from '../../utils';
+import { SLOT_TYPE_LABELS, formatTime, getFileUrl } from '../../utils';
 
 const SLOT_COLORS: Record<string, string> = {
   keynote: 'border-accent-400 bg-accent-50',
@@ -131,7 +131,7 @@ function SubmissionSearchPanel({
                     )}
                     {author?.university?.logoUrl && (
                       <img
-                        src={author.university.logoUrl}
+                        src={getFileUrl(author.university.logoUrl)}
                         alt={author.university.name}
                         title={author.university.name}
                         className="w-4 h-4 object-contain rounded bg-white border border-gray-200"
@@ -468,7 +468,7 @@ function SlotCard({
             {flagEmoji && <span className="text-sm leading-none">{flagEmoji}</span>}
             {mainAuthor?.university?.logoUrl && (
               <img
-                src={mainAuthor.university.logoUrl}
+                src={getFileUrl(mainAuthor.university.logoUrl)}
                 alt={mainAuthor.university.name}
                 title={mainAuthor.university.name}
                 className="w-4 h-4 object-contain rounded bg-white border border-gray-200 flex-shrink-0"

@@ -11,7 +11,7 @@ import { eventsApi } from '../../api/events.api';
 import { submissionsApi, UniqueAuthor } from '../../api/submissions.api';
 import { thematicAxesApi, productTypesApi, countriesApi, universitiesApi, facultiesApi } from '../../api/index';
 import { Submission } from '../../types';
-import { STATUS_CONFIG, formatDate } from '../../utils';
+import { STATUS_CONFIG, formatDate, getFileUrl } from '../../utils';
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: '', label: 'Todos los estados' },
@@ -811,7 +811,7 @@ export default function Submissions() {
                               )}
                               {corresponding?.university?.logoUrl && (
                                 <img
-                                  src={corresponding.university.logoUrl}
+                                  src={getFileUrl(corresponding.university.logoUrl)}
                                   alt={corresponding.university.name}
                                   title={corresponding.university.name}
                                   className="w-4 h-4 object-contain rounded bg-white border border-gray-200"

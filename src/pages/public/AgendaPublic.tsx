@@ -6,7 +6,7 @@ import { Calendar, MapPin, User, FileDown, Clock } from 'lucide-react';
 import { eventsApi } from '../../api/events.api';
 import { agendaApi } from '../../api/agenda.api';
 import { AgendaSlot } from '../../types';
-import { formatTime, SLOT_TYPE_LABELS } from '../../utils';
+import { formatTime, SLOT_TYPE_LABELS, getFileUrl } from '../../utils';
 import { useTheme } from '../../hooks/useTheme';
 import { useScrollToTop } from '../../hooks/useScrollToTop';
 
@@ -120,7 +120,7 @@ function SlotCard({ slot, isDark }: { slot: AgendaSlot; isDark: boolean }) {
                   <p className={`text-xs truncate flex items-center gap-1 ${textMut}`}>
                     {mainAuthor?.university?.logoUrl && (
                       <img
-                        src={mainAuthor.university.logoUrl}
+                        src={getFileUrl(mainAuthor.university.logoUrl)}
                         alt={mainAuthor.university.name}
                         title={mainAuthor.university.name}
                         className="w-3.5 h-3.5 object-contain rounded bg-white border border-gray-200 flex-shrink-0"
