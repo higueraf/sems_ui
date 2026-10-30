@@ -103,12 +103,7 @@ src/
 
 ## Credenciales de prueba
 
-Después de ejecutar el seed del backend:
-
-| Rol | Email | Contraseña |
-|---|---|---|
-| Administrador | `admin@sems.edu` | `Admin2026!` |
-| Evaluador | `evaluador@sems.edu` | `Eval2026!` |
+Después de ejecutar el seed del backend se crean `admin@sems.edu` y `evaluador@sems.edu`. La contraseña se define con `SEED_ADMIN_PASSWORD`/`SEED_EVALUATOR_PASSWORD` al correr el seed, o se genera aleatoria y se imprime una sola vez en la consola si no se definen (ver `sems_api/README.md`).
 
 ## Diseño
 
